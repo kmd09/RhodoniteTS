@@ -371,13 +371,13 @@ bool processGeometryWithMorphingAndSkinning(
     const processApproach = System.getInstance().processApproach;
     if (processApproach === ProcessApproach.FastestWebGL1) {
       return `
-  float materialSID = u_currentComponentSIDs[0];
+  float materialSID = 0.0;
   int lightNumber = int(u_currentComponentSIDs[${WellKnownComponentTIDs.LightComponentTID}]);
   float skeletalComponentSID = u_currentComponentSIDs[${WellKnownComponentTIDs.SkeletalComponentTID}];
 `;
     } else {
       return `
-  float materialSID = u_materialSID;
+  float materialSID = 0.0;
   int lightNumber = u_lightNumber;
   float skeletalComponentSID = float(u_skinningMode);
       `;

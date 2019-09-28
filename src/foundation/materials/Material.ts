@@ -808,9 +808,8 @@ uniform bool u_vertexAttributesExistenceArray[${VertexAttribute.AttributeTypeNum
       const value = Material.__soloDatumFields.get(material.__materialTypeName)!.get(propertyIndex);
       return (value.v as Float32Array).byteOffset / 4 / 4;
     } else {
-      const properties = this.__accessors.get(materialTypeName);
-      const accessor = properties!.get(propertyIndex);
-      return accessor!.byteOffsetInBuffer / 4 / 4;
+      const value = material.__fields.get(propertyIndex);
+      return (value.v as Float32Array).byteOffset / 4 / 4;
     }
   }
 

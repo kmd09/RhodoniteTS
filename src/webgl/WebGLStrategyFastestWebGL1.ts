@@ -581,7 +581,6 @@ export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
   }
 
   private __setCurrentComponentSIDsForEachPrimitive(gl: WebGLRenderingContext, renderPass: RenderPass, material: Material, entity: Entity) {
-    WebGLStrategyFastestWebGL1.__currentComponentSIDs!.v[0] = material.materialSID;
     gl.uniform1fv((WebGLStrategyFastestWebGL1.__shaderProgram as any).currentComponentSIDs, WebGLStrategyFastestWebGL1.__currentComponentSIDs!.v);
   }
 
