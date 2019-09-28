@@ -57,7 +57,6 @@ export default class Material extends RnObject {
   private static __materialInstanceCountOfType: Map<MaterialTypeName, Count> = new Map();
   private __materialSid: Index = -1;
   private static __materialTypes: Map<MaterialTypeName, AbstractMaterialNode[]> = new Map();
-  private static __maxInstances: Map<MaterialTypeName, number> = new Map();
   private __materialTypeName: MaterialTypeName;
   private __bufferView?: BufferView;
   private __accessors: Map<ShaderSemanticsIndex, Accessor> = new Map();
@@ -101,7 +100,7 @@ export default class Material extends RnObject {
     }
 
     if (!Material.__materialTypes.has(materialTypeName)) {
-      Material.registerMaterial(materialTypeName, materialNodes_!, maxInstancesNumber!);
+      Material.registerMaterial(materialTypeName, materialNodes_!);
     }
 
     return new Material(Material.__materialTids.get(materialTypeName)!, materialTypeName, materialNodes);;
@@ -200,13 +199,12 @@ export default class Material extends RnObject {
    * @param materialNodes The material nodes to register.
    * @param maxInstancesNumber The maximum number to create the material instances.
    */
-  static registerMaterial(materialTypeName: string, materialNodes: AbstractMaterialNode[], maxInstanceNumber: number = Config.maxMaterialInstanceForEachType) {
+  static registerMaterial(materialTypeName: string, materialNodes: AbstractMaterialNode[]) {
     if (!Material.__materialTypes.has(materialTypeName)) {
       Material.__materialTypes.set(materialTypeName, materialNodes);
 
       const materialTid = ++Material.__materialTidCount;
       Material.__materialTids.set(materialTypeName, materialTid);
-      Material.__maxInstances.set(materialTypeName, maxInstanceNumber);
 
       Material.__materialInstanceCountOfType.set(materialTypeName, 0);
 
