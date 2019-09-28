@@ -59,8 +59,8 @@ export default class Material extends RnObject {
   private static __materialTypes: Map<MaterialTypeName, AbstractMaterialNode[]> = new Map();
   private static __maxInstances: Map<MaterialTypeName, number> = new Map();
   private __materialTypeName: MaterialTypeName;
-  private static __bufferViews: Map<MaterialTypeName, BufferView> = new Map();
-  private static __accessors: Map<MaterialTypeName, Map<ShaderSemanticsIndex, Accessor>> = new Map();
+  private __bufferView?: BufferView;
+  private __accessors: Map<ShaderSemanticsIndex, Accessor> = new Map();
 
   private constructor(materialTid: Index, materialTypeName: string, materialNodes: AbstractMaterialNode[]) {
     super();
@@ -127,40 +127,28 @@ export default class Material extends RnObject {
     return alignedByteLength;
   }
 
-  private static __allocateBufferView(materialTypeName: string, materialNodes: AbstractMaterialNode[]) {
+  private __allocateBufferView(materialTypeName: string, materialNodes: AbstractMaterialNode[]) {
     let totalByteLength = 0;
     const alignedByteLengthAndsemanticInfoArray = [];
+
+    // collect info of all materialNodes in material
     for (let materialNode of materialNodes) {
       for (let semanticInfo of materialNode._semanticsInfoArray) {
         const alignedByteLength = Material._calcAlignedByteLength(semanticInfo);
-        let dataCount = 1;
-        if (!semanticInfo.soloDatum) {
-          dataCount = Material.__maxInstances.get(materialTypeName)!;
-        }
-
-        totalByteLength += alignedByteLength * dataCount;
+        totalByteLength += alignedByteLength;
         alignedByteLengthAndsemanticInfoArray.push({ alignedByte: alignedByteLength, semanticInfo: semanticInfo });
 
       }
     }
 
-    if (!this.__accessors.has(materialTypeName)) {
-      this.__accessors.set(materialTypeName, new Map());
-    }
-
-
     const buffer = MemoryManager.getInstance().getBuffer(BufferUse.GPUInstanceData);
-    let bufferView;
-    if (this.__bufferViews.has(materialTypeName)) {
-      bufferView = this.__bufferViews.get(materialTypeName);
-    } else {
-      bufferView = buffer.takeBufferView({
+    if (this.__bufferView == null) {
+      this.__bufferView = buffer.takeBufferView({
         byteLengthToNeed: totalByteLength,
         byteStride: 0,
         byteAlign: 16,
         isAoS: false
       });
-      this.__bufferViews.set(materialTypeName, bufferView);
     }
 
     for (let i = 0; i < alignedByteLengthAndsemanticInfoArray.length; i++) {
@@ -168,14 +156,11 @@ export default class Material extends RnObject {
       const semanticInfo = alignedByteLengthAndsemanticInfoArray[i].semanticInfo;
 
       let count = 1;
-      if (!semanticInfo.soloDatum) {
-        count = Material.__maxInstances.get(materialTypeName)!;
-      }
       let maxArrayLength = semanticInfo.maxIndex;
       if (CompositionType.isArray(semanticInfo.compositionType) && maxArrayLength == null) {
         maxArrayLength = 100;
       }
-      const accessor = bufferView!.takeFlexibleAccessor({
+      const accessor = this.__bufferView!.takeFlexibleAccessor({
         compositionType: semanticInfo.compositionType,
         componentType: ComponentType.Float,
         count: count,
@@ -184,17 +169,17 @@ export default class Material extends RnObject {
         byteAlign: 16
       });
 
-      const propertyName = this._getPropertyIndex(semanticInfo);
+      const propertyName = Material._getPropertyIndex(semanticInfo);
       if (semanticInfo.soloDatum) {
         const typedArray = accessor.takeOne() as Float32Array;
-        let map = this.__soloDatumFields.get(materialTypeName);
+        let map = Material.__soloDatumFields.get(materialTypeName);
         if (map == null) {
           map = new Map();
-          this.__soloDatumFields.set(materialTypeName, map);
+          Material.__soloDatumFields.set(materialTypeName, map);
         }
 
         map.set(
-          this._getPropertyIndex(semanticInfo),
+          Material._getPropertyIndex(semanticInfo),
           MathClassUtil.initWithFloat32Array(
             semanticInfo.initialValue,
             semanticInfo.initialValue,
@@ -202,12 +187,11 @@ export default class Material extends RnObject {
             semanticInfo.compositionType
           ));
       } else {
-        const properties = this.__accessors.get(materialTypeName)!;
-        properties.set(propertyName, accessor);
+        this.__accessors.set(propertyName, accessor);
       }
     }
 
-    return bufferView;
+    return this.__bufferView;
   }
 
   /**
@@ -224,7 +208,6 @@ export default class Material extends RnObject {
       Material.__materialTids.set(materialTypeName, materialTid);
       Material.__maxInstances.set(materialTypeName, maxInstanceNumber);
 
-      Material.__allocateBufferView(materialTypeName, materialNodes);
       Material.__materialInstanceCountOfType.set(materialTypeName, 0);
 
       return true;
@@ -275,24 +258,28 @@ export default class Material extends RnObject {
     this.__materialSid = countOfThisType++;
     Material.__materialInstanceCountOfType.set(this.__materialTypeName, countOfThisType);
 
+
+    this.__allocateBufferView(this.__materialTypeName, this.__materialNodes);
+
     this.__materialNodes.forEach((materialNode) => {
       const semanticsInfoArray = materialNode._semanticsInfoArray;
-      const accessorMap = Material.__accessors.get(this.__materialTypeName);
       semanticsInfoArray.forEach((semanticsInfo) => {
         const propertyIndex = Material._getPropertyIndex(semanticsInfo);
         this.__fieldsInfo.set(propertyIndex, semanticsInfo);
-        if (!semanticsInfo.soloDatum) {
-          const accessor = accessorMap!.get(propertyIndex) as Accessor;
-          const typedArray = accessor.takeOne() as Float32Array;
-          this.__fields.set(
-            propertyIndex,
-            MathClassUtil.initWithFloat32Array(
-              semanticsInfo.initialValue,
-              semanticsInfo.initialValue,
-              typedArray,
-              semanticsInfo.compositionType
-            ));
+
+        if (semanticsInfo.soloDatum) {
+          return;
         }
+        const accessor = this.__accessors.get(propertyIndex) as Accessor;
+        const typedArray = accessor.takeOne() as Float32Array;
+        this.__fields.set(
+          propertyIndex,
+          MathClassUtil.initWithFloat32Array(
+            semanticsInfo.initialValue,
+            semanticsInfo.initialValue,
+            typedArray,
+            semanticsInfo.compositionType
+          ));
       });
     });
   }
@@ -819,8 +806,7 @@ uniform bool u_vertexAttributesExistenceArray[${VertexAttribute.AttributeTypeNum
     if (info.soloDatum) {
       return void 0;
     } else {
-      const properties = this.__accessors.get(materialTypeName);
-      const accessor = properties!.get(propertyIndex);
+      const accessor = material.__accessors.get(propertyIndex);
       return accessor;
     }
   }
