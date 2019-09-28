@@ -190,14 +190,6 @@ export default class AccessorBase extends RnObject {
     return this.__typedArray!;
   }
 
-  get isAoS() {
-    return this.__bufferView.isAoS;
-  }
-
-  get isSoA() {
-    return this.__bufferView.isSoA;
-  }
-
   get byteStride() {
     return this.__byteStride;
   }
