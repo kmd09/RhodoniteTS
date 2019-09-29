@@ -148,7 +148,7 @@ export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
       return offset;
     }
 
-    const getShaderProperty = (materialTypeName: string, info: ShaderSemanticsInfo, propertyIndex: Index, isGlogalData: boolean) => {
+    const getShaderProperty = (materialTypeName: string, info: ShaderSemanticsInfo, propertyIndex: Index, isGlogalData: boolean, material?: Material) => {
       const returnType = info.compositionType.getGlslStr(info.componentType);
 
       const indexArray = [];
@@ -171,6 +171,12 @@ export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
       if (info.needUniformInFastest || isTexture) {
         varDef = `  uniform ${varType} u_${methodName}${varIndexStr};\n`;
       }
+
+
+      if (isTexture) {
+        return `${varDef}`;
+      }
+
       //    }
       // inner contents of 'get_' shader function
       if (propertyIndex < 0) {
@@ -179,7 +185,7 @@ export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
         }
         const offset = getOffset(info);
         for (let i = 0; i < info.maxIndex!; i++) {
-          const index = Material.getLocationOffsetOfMemberOfMaterial(materialTypeName, propertyIndex)!;
+          const index = material!.getLocationOffsetOfMemberOfMaterial(materialTypeName, propertyIndex)!;
           indexArray.push(index)
         }
         maxIndex = info.maxIndex!;
@@ -207,20 +213,21 @@ export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
           index = globalDataRepository.getLocationOffsetOfProperty(propertyIndex)!;
           let maxCount = globalDataRepository.getGlobalPropertyStruct(propertyIndex)!.maxCount;
           secondOffset = offset;
-        } else {
-          index = Material.getLocationOffsetOfMemberOfMaterial(materialTypeName, propertyIndex)!;
-        }
-        if (CompositionType.isArray(info.compositionType)) {
-          idx = 'float(index)';
-          if (info.maxIndex != null) {
-            secondOffset = offset * info.maxIndex;
+          if (CompositionType.isArray(info.compositionType)) {
+            idx = 'float(index)';
+            if (info.maxIndex != null) {
+              secondOffset = offset * info.maxIndex;
+            }
+          } else if (info.compositionType === CompositionType.Mat4 || info.compositionType === CompositionType.Mat3 || info.compositionType === CompositionType.Mat2) {
+            idx = 'float(index)';
+          } else {
+            idx = 'instanceId';
           }
-        } else if (info.compositionType === CompositionType.Mat4 || info.compositionType === CompositionType.Mat3 || info.compositionType === CompositionType.Mat2) {
-          idx = 'float(index)';
+          indexStr = `highp float idx = ${index}.0 + ${secondOffset}.0 * instanceId + ${offset}.0 * ${idx};`;
         } else {
-          idx = 'instanceId';
+          index = material!.getLocationOffsetOfMemberOfMaterial(materialTypeName, propertyIndex)!;
+          indexStr = `highp float idx = ${index}.0 + ${offset}.0 * float(index);`;
         }
-        indexStr = `highp float idx = ${index}.0 + ${secondOffset}.0 * instanceId + ${offset}.0 * ${idx};`;
       }
 
 
