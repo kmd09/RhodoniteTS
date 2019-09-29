@@ -33,7 +33,7 @@ import GlobalDataRepository from "../core/GlobalDataRepository";
 type MaterialTypeName = string;
 type PropertyName = string;
 
-export type getShaderPropertyFunc = (materialTypeName: string, info: ShaderSemanticsInfo, propertyIndex: Index, isGlobalData: boolean) => string;
+export type getShaderPropertyFunc = (materialTypeName: string, info: ShaderSemanticsInfo, propertyIndex: Index, isGlobalData: boolean, material?: Material) => string;
 
 
 /**
@@ -418,10 +418,10 @@ export default class Material extends RnObject {
     this.__fieldsInfo.forEach((value, propertyIndex: Index) => {
       const info = this.__fieldsInfo.get(propertyIndex);
       if (info!.stage === ShaderType.VertexShader || info!.stage === ShaderType.VertexAndPixelShader) {
-        vertexPropertiesStr += propertySetter(this.__materialTypeName, info!, propertyIndex, false);
+        vertexPropertiesStr += propertySetter(this.__materialTypeName, info!, propertyIndex, false, this);
       }
       if (info!.stage === ShaderType.PixelShader || info!.stage === ShaderType.VertexAndPixelShader) {
-        pixelPropertiesStr += propertySetter(this.__materialTypeName, info!, propertyIndex, false);
+        pixelPropertiesStr += propertySetter(this.__materialTypeName, info!, propertyIndex, false, this);
       }
     });
 
@@ -801,14 +801,13 @@ uniform bool u_vertexAttributesExistenceArray[${VertexAttribute.AttributeTypeNum
     }
   }
 
-  static getLocationOffsetOfMemberOfMaterial(materialTypeName: string, propertyIndex: Index) {
-    const material = Material.__instancesByTypes.get(materialTypeName)!;
-    const info = material.__fieldsInfo.get(propertyIndex)!;
+  getLocationOffsetOfMemberOfMaterial(materialTypeName: string, propertyIndex: Index) {
+    const info = this.__fieldsInfo.get(propertyIndex)!;
     if (info.soloDatum) {
-      const value = Material.__soloDatumFields.get(material.__materialTypeName)!.get(propertyIndex);
+      const value = Material.__soloDatumFields.get(this.__materialTypeName)!.get(propertyIndex);
       return (value.v as Float32Array).byteOffset / 4 / 4;
     } else {
-      const value = material.__fields.get(propertyIndex);
+      const value = this.__fields.get(propertyIndex);
       return (value.v as Float32Array).byteOffset / 4 / 4;
     }
   }
