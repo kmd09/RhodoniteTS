@@ -11,6 +11,8 @@ import ShadowMapDecodeClassicSingleMaterialNode from "../materials/ShadowMapDeco
 import GammaCorrectionSingleMaterialNode from "../materials/GammaCorrectionSingleMaterialNode";
 import EntityUIDOutputSingleMaterialNode from "../materials/EntityUIDOutputSingleMaterialNode";
 import MToonSingleMaterialNode from "../materials/MToonSingleMaterialNode";
+import ToonShadingMaterialNode from "../materials/ToonShadingMaterialNode";
+
 
 function createMaterial(materialName: string, materialNodes?: AbstractMaterialNode[], maxInstancesNumber?: number): Material {
   const isRegistMaterialType = Material.isRegistedMaterialType(materialName);
@@ -143,8 +145,28 @@ function createMToonMaterial({
   return material;
 }
 
+function createToonShadingMaterial({
+  additionalName = '', isMorphing = true, isSkinning = true, isLighting = true,
+  isOutline = false, materialPropertiesArray = undefined, textures = undefined,
+  maxInstancesNumber = Config.maxMaterialInstanceForEachType
+} = {}) {
+
+  const materialName = 'ToonShader' + `_${additionalName}_`
+    + (isMorphing ? '+morphing' : '')
+    + (isSkinning ? '+skinning' : '')
+    + (isLighting ? '' : '-lighting')
+    + (isOutline ? '' : '-outline');
+
+  const materialNode = new ToonShadingMaterialNode(isOutline, materialPropertiesArray, textures, isMorphing, isSkinning, isLighting);
+
+  materialNode.isSingleOperation = true;
+  const material = createMaterial(materialName, [materialNode], maxInstancesNumber);
+
+  return material;
+}
+
 
 export default Object.freeze({
   createPbrUberMaterial, createClassicUberMaterial, createEnvConstantMaterial, createFXAA3QualityMaterial, createDepthEncodeMaterial,
-  createShadowMapDecodeClassicSingleMaterial, createGammaCorrectionMaterial, createEntityUIDOutputMaterial, createMToonMaterial,
+  createShadowMapDecodeClassicSingleMaterial, createGammaCorrectionMaterial, createEntityUIDOutputMaterial, createMToonMaterial, createToonShadingMaterial
 });

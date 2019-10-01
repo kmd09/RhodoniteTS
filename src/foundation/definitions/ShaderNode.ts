@@ -13,6 +13,7 @@ const ClassicShading: ShaderNodeEnum = new ShaderNodeClass({index:0, str:'Classi
 const PBRShading: ShaderNodeEnum = new ShaderNodeClass({index:1, str:'PBRShading'});
 const Lerp: ShaderNodeEnum = new ShaderNodeClass({index:2, str:'Lerp'});
 const Add: ShaderNodeEnum = new ShaderNodeClass({index:3, str:'Add'});
+const ToonShading: ShaderNodeEnum = new ShaderNodeClass({index:4, str:'ToonShading'});
 
 const typeList = [ClassicShading, PBRShading];
 
@@ -24,4 +25,4 @@ function fromString( str: string ): ShaderNodeEnum {
   return _fromString({typeList, str}) as ShaderNodeEnum;
 }
 
-export const ShaderNode = Object.freeze({ClassicShading, PBRShading, from, fromString });
+export const ShaderNode = Object.freeze({ClassicShading, PBRShading, ToonShading, from, fromString });

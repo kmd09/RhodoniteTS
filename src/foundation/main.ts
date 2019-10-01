@@ -63,6 +63,7 @@ import Component from './core/Component';
 import EnvConstantSingleMaterialNode from '../foundation/materials/EnvConstantSingleMaterialNode';
 import RnObject from '../foundation/core/RnObject';
 import VRMImporter from '../foundation/importer/VRMImporter';
+import ToonVRMImporter from '../foundation/importer/ToonVRMImporter';
 import BlendShapeComponent from '../foundation/components/BlendShapeComponent';
 import AnimationAssigner from '../foundation/importer/AnimationAssigner';
 import { MiscUtil } from '../foundation/misc/MiscUtil';
@@ -134,6 +135,7 @@ const Rn = {
   EnvConstantSingleMaterialNode,
   RnObject,
   VRMImporter,
+  ToonVRMImporter,
   BlendShapeComponent,
   AnimationAssigner,
   MiscUtil,
