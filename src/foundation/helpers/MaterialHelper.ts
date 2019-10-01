@@ -11,7 +11,7 @@ import ShadowMapDecodeClassicSingleMaterialNode from "../materials/ShadowMapDeco
 import GammaCorrectionSingleMaterialNode from "../materials/GammaCorrectionSingleMaterialNode";
 import EntityUIDOutputSingleMaterialNode from "../materials/EntityUIDOutputSingleMaterialNode";
 import MToonSingleMaterialNode from "../materials/MToonSingleMaterialNode";
-import ToonShadingMaterialNode from "../materials/ToonShadingMaterialNode";
+import UTS2MaterialNode from "../materials/UTS2MaterialNode";
 
 
 function createMaterial(materialName: string, materialNodes?: AbstractMaterialNode[], maxInstancesNumber?: number): Material {
@@ -145,19 +145,19 @@ function createMToonMaterial({
   return material;
 }
 
-function createToonShadingMaterial({
+function createUTS2Material({
   additionalName = '', isMorphing = true, isSkinning = true, isLighting = true,
   isOutline = false, materialPropertiesArray = undefined, textures = undefined,
   maxInstancesNumber = Config.maxMaterialInstanceForEachType
 } = {}) {
 
-  const materialName = 'ToonShader' + `_${additionalName}_`
+  const materialName = 'UTS2' + `_${additionalName}_`
     + (isMorphing ? '+morphing' : '')
     + (isSkinning ? '+skinning' : '')
     + (isLighting ? '' : '-lighting')
     + (isOutline ? '' : '-outline');
 
-  const materialNode = new ToonShadingMaterialNode(isOutline, materialPropertiesArray, textures, isMorphing, isSkinning, isLighting);
+  const materialNode = new UTS2MaterialNode(isOutline, materialPropertiesArray, textures, isMorphing, isSkinning, isLighting);
 
   materialNode.isSingleOperation = true;
   const material = createMaterial(materialName, [materialNode], maxInstancesNumber);
@@ -168,5 +168,5 @@ function createToonShadingMaterial({
 
 export default Object.freeze({
   createPbrUberMaterial, createClassicUberMaterial, createEnvConstantMaterial, createFXAA3QualityMaterial, createDepthEncodeMaterial,
-  createShadowMapDecodeClassicSingleMaterial, createGammaCorrectionMaterial, createEntityUIDOutputMaterial, createMToonMaterial, createToonShadingMaterial
+  createShadowMapDecodeClassicSingleMaterial, createGammaCorrectionMaterial, createEntityUIDOutputMaterial, createMToonMaterial, createUTS2Material
 });

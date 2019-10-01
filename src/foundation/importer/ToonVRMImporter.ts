@@ -234,7 +234,7 @@ export default class ToonVRMImporter {
       }
 
       options.isImportVRM = true;
-      if (options.defaultMaterialHelperName === "createToonShadingMaterial") {
+      if (options.defaultMaterialHelperName === "createUTS2Material") {
         options.defaultMaterialHelperName = null;
       }
     } else {
