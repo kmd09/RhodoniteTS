@@ -515,8 +515,10 @@ export default class VRMImporter {
       texturePropertiesArray[15] = (textureProperties["_BakedNormal"]         != null ? textureProperties["_BakedNormal"]         : dummyBlackTextureNumber);
 
       materialPropertiesArray.push([floatPropertiesArray, vectorPropertiesArray, texturePropertiesArray]);
+      console.log(texturePropertiesArray);
 
     }
+
     return materialPropertiesArray;
   }
 

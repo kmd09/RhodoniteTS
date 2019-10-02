@@ -30,7 +30,7 @@ const load = async function (time) {
   const lightComponent2 = lightEntity2.getComponent(Rn.LightComponent);
   lightComponent2.type = Rn.LightType.Directional;
   lightComponent2.intensity = new Rn.Vector3(1.0, 1.0, 1.0);
-  lightEntity2.getTransform().rotate = new Rn.Vector3(0.0, 0.0, Math.PI / 8);
+  lightEntity2.getTransform().rotate = new Rn.Vector3(0.0, 0.3, Math.PI / 8);
   //lightEntity2.getTransform().rotate = new Rn.Vector3(Math.PI/2, 0, 0);
   //lightEntity2.getComponent(Rn.LightComponent).type = Rn.LightType.Directional;
 
@@ -76,17 +76,15 @@ const load = async function (time) {
     if (window.isAnimating) {
       const date = new Date();
       const rotation = 0.001 * (date.getTime() - startTime);
-      //rotationVec3.v[0] = 0.1;
-      //rotationVec3.v[1] = rotation;
-      //rotationVec3.v[2] = 0.1;
+      rotationVec3.v[0] = 0.0;
+      rotationVec3.v[1] = rotation;
+      rotationVec3.v[2] = 0.0;
       const time = (date.getTime() - startTime) / 1000;
       Rn.AnimationComponent.globalTime = time;
-      if (time > Rn.AnimationComponent.endInputValue) {
-        startTime = date.getTime();
+      for (let rootGroup of rootGroups) {
+        rootGroup.getTransform().rotate = rotationVec3;
       }
-      //console.log(time);
-      //      rootGroup.getTransform().scale = rotationVec3;
-      //rootGroup.getTransform().translate = rootGroup.getTransform().translate;
+
     }
 
     system.process();

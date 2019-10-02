@@ -233,24 +233,6 @@ ${this.pointSprite}
         ${this.mainPrerequisites}
 
         rt0 = vec4(0.0, 0.0, 0.0, 1.0);
-        // rt0.rgb = ${_texture}(u_MainTex, v_texcoord).rgb / 2.0;
-        // rt0.rgb = ${_texture}(u_1st_ShadeMap, v_texcoord).rgb;  // white ng
-        // rt0.rgb = ${_texture}(u_2nd_ShadeMap, v_texcoord).rgb;  // off-blue ng
-        // rt0.rgb = ${_texture}(u_ShadingGradeMap, v_texcoord).rgb;  // white
-        // rt0.rgb = ${_texture}(u_ClippingMask, v_texcoord).rgb;  // black not confirmed?
-        // rt0.rgb = ${_texture}(u_NormalMap, v_texcoord).rgb;  // good
-        // rt0.rgb = ${_texture}(u_HighColor_Tex, v_texcoord).rgb;  // black
-        rt0.rgb = ${_texture}(u_MatCap_Sampler, v_texcoord).rgb;  // good
-        // rt0.rgb = ${_texture}(u_NormalMapForMatCap, v_texcoord).rgb;  // white
-        // rt0.rgb = ${_texture}(u_Set_MatcapMask, v_texcoord).rgb;  //black
-        // rt0.rgb = ${_texture}(u_Emissive_Tex , v_texcoord).rgb;  // white
-        // rt0.rgb = ${_texture}(u_Outline_Sampler, v_texcoord).rgb;  // good
-        // rt0.rgb = ${_texture}(u_OutlineTex, v_texcoord).rgb;  // black
-        // rt0.rgb = ${_texture}(u_BakedNormal, v_texcoord).rgb;  // black
-
-        ${_def_fragColor}
-        return;
-
 
         // -------------------------------------------------------------------
         // General properties
@@ -289,11 +271,7 @@ ${this.pointSprite}
             shade2ndTexColor = ${_texture}(u_2nd_ShadeMap, v_texcoord);
         }
 
-
         vec4 shadingGradeTexture = ${_texture}(u_ShadingGradeMap, v_texcoord);
-
-        rt0.rgb = baseTexColor.rgb;
-        rt0.rgb = shade1stTexColor.rgb;
 
         // -------------------------------------------------------------------
         // Normal
@@ -464,13 +442,11 @@ ${this.pointSprite}
         float shadeMask1st = shade_mask(shadingGrade, shade1stStep, shade1stFeather);
         float shadeMask2nd = shade_mask(shadingGrade, shade2ndStep, shade2ndFeather);
 
-        baseColor.rgb = mix(baseColor.rgb, shade1st, shadeMask1st);
-        baseColor.rgb = mix(baseColor.rgb, mix(shade1st, shade2nd, shadeMask2nd), shadeMask1st);
+        base.rgb = mix(base.rgb, shade1st, shadeMask1st);
+        base.rgb = mix(base.rgb, mix(shade1st, shade2nd, shadeMask2nd), shadeMask1st);
 
-        // BaseColor (take account for BaseColorTexture)
-        vec4 textureColor = ${_texture}(u_MainTex, v_texcoord);
         // baseColor *= srgbToLinear(textureColor.rgb);
-        alpha *= textureColor.a;
+        alpha *= baseTexColor.a;
 
         if (alpha < 0.01) {
             discard;
@@ -501,7 +477,7 @@ ${this.pointSprite}
 
         // rt0.rgb = vec3(0.5);
         // rt0.rgb = shade2nd;
-        rt0.rgb = baseTexColor.rgb;
+        rt0.rgb = base.rgb;
 
         ${_def_fragColor}
     }
