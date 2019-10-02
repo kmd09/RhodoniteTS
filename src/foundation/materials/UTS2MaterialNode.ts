@@ -24,22 +24,6 @@ export default class UTS2MaterialNode extends AbstractMaterialNode {
 
   static readonly IsOutputHDR                                         = new ShaderSemanticsClass({ str: 'isOutputHDR' });
 
-  /*
-  static readonly Shade1stTexture:                ShaderSemanticsEnum = new ShaderSemanticsClass({ str: 'shade1stTexture'                });
-  static readonly Shade1stStep:                   ShaderSemanticsEnum = new ShaderSemanticsClass({ str: 'shade1stStep'                   });
-  static readonly Shade1stFeather:                ShaderSemanticsEnum = new ShaderSemanticsClass({ str: 'shade1stFeather'                });
-  static readonly Shade1stPositionTexture:        ShaderSemanticsEnum = new ShaderSemanticsClass({ str: 'shade1stPositionTexture'        });
-  static readonly UseBaseAs1stShade:              ShaderSemanticsEnum = new ShaderSemanticsClass({ str: 'useBaseAs1stShade'              });
-  static readonly IsLightColorContribute1stShade: ShaderSemanticsEnum = new ShaderSemanticsClass({ str: 'isLightColorContribute1stShade' });
-
-  static readonly Shade2ndTexture:                ShaderSemanticsEnum = new ShaderSemanticsClass({ str: 'shade2ndTexture'                });
-  static readonly Shade2ndStep:                   ShaderSemanticsEnum = new ShaderSemanticsClass({ str: 'shade2ndStep'                   });
-  static readonly Shade2ndFeather:                ShaderSemanticsEnum = new ShaderSemanticsClass({ str: 'shade2ndFeather'                });
-  static readonly Shade2ndPositionTexture:        ShaderSemanticsEnum = new ShaderSemanticsClass({ str: 'shade2ndPositionTexture'        });
-  static readonly UseBaseAs2ndShade:              ShaderSemanticsEnum = new ShaderSemanticsClass({ str: 'useBaseAs2ndShade'              });
-  static readonly IsLightColorContribute2ndShade: ShaderSemanticsEnum = new ShaderSemanticsClass({ str: 'isLightColorContribute2ndShade' });
-   */
-
   static readonly _IsBaseMapAlphaAsClippingMask    = new ShaderSemanticsClass({ str: 'IsBaseMapAlphaAsClippingMask'});
   static readonly _Inverse_Clipping                = new ShaderSemanticsClass({ str: 'Inverse_Clipping'});
   static readonly _Is_LightColor_Base              = new ShaderSemanticsClass({ str: 'Is_LightColor_Base'});
@@ -275,9 +259,6 @@ export default class UTS2MaterialNode extends AbstractMaterialNode {
         AbstractMaterialNode.__dummyBlackTexture
       ]
     }
-
-    console.log( textures );
-    console.log( this.__texturePropertiesArray[0] );
 
     // --------------------------------------------------------------------------------------------------------
     // PixelShader
