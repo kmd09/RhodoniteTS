@@ -814,37 +814,37 @@ export default class UTS2MaterialNode extends AbstractMaterialNode {
       {
         semantic: ShaderSemantics.BaseColorTexture, componentType: ComponentType.Int, compositionType: CompositionType.Texture2D,
         stage: ShaderType.PixelShader, isSystem: false, updateInteval: ShaderVariableUpdateInterval.EveryTime,
-        initialValue: [0, AbstractMaterialNode.__dummyWhiteTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
+        initialValue: [16, AbstractMaterialNode.__dummyWhiteTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
       },
       {
         semantic: ShaderSemantics.MetallicRoughnessTexture, componentType: ComponentType.Int, compositionType: CompositionType.Texture2D,
         stage: ShaderType.PixelShader, isSystem: false, updateInteval: ShaderVariableUpdateInterval.EveryTime,
-        initialValue: [1, AbstractMaterialNode.__dummyWhiteTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
+        initialValue: [17, AbstractMaterialNode.__dummyWhiteTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
       },
       {
         semantic: ShaderSemantics.NormalTexture, componentType: ComponentType.Int, compositionType: CompositionType.Texture2D,
         stage: ShaderType.PixelShader, isSystem: false, updateInteval: ShaderVariableUpdateInterval.EveryTime,
-        initialValue: [2, AbstractMaterialNode.__dummyBlueTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
+        initialValue: [18, AbstractMaterialNode.__dummyBlueTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
       },
       {
         semantic: ShaderSemantics.OcclusionTexture, componentType: ComponentType.Int, compositionType: CompositionType.Texture2D,
         stage: ShaderType.PixelShader, isSystem: false, updateInteval: ShaderVariableUpdateInterval.EveryTime,
-        initialValue: [3, AbstractMaterialNode.__dummyWhiteTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
+        initialValue: [19, AbstractMaterialNode.__dummyWhiteTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
       },
       {
         semantic: ShaderSemantics.EmissiveTexture, componentType: ComponentType.Int, compositionType: CompositionType.Texture2D,
         stage: ShaderType.PixelShader, isSystem: false, updateInteval: ShaderVariableUpdateInterval.EveryTime,
-        initialValue: [4, AbstractMaterialNode.__dummyBlackTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
+        initialValue: [20, AbstractMaterialNode.__dummyBlackTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
       },
       {
         semantic: ShaderSemantics.DiffuseEnvTexture, componentType: ComponentType.Int, compositionType: CompositionType.TextureCube,
         stage: ShaderType.PixelShader, isSystem: true, soloDatum: false,
-        initialValue: [5, AbstractMaterialNode.__dummyWhiteTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
+        initialValue: [21, AbstractMaterialNode.__dummyWhiteTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
       },
       {
         semantic: ShaderSemantics.SpecularEnvTexture, componentType: ComponentType.Int, compositionType: CompositionType.TextureCube,
         stage: ShaderType.PixelShader, isSystem: true, soloDatum: false,
-        initialValue: [6, AbstractMaterialNode.__dummyWhiteTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
+        initialValue: [22, AbstractMaterialNode.__dummyWhiteTexture], min: 0, max: Number.MAX_SAFE_INTEGER,
       },
 
       {
