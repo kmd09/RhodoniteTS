@@ -543,6 +543,12 @@ export default class ModelConverter {
 
           argumentArray[0]["materialPropertiesArray"] = materialProperties;
           return MaterialHelper.createMToonMaterial.apply(this, argumentArray as any);
+
+        } else if (shaderName.indexOf("UnityChanToonShader") >= 0) {
+
+          argumentArray[0]["materialPropertiesArray"] = materialProperties;
+          return MaterialHelper.createUTS2Material.apply(this, argumentArray as any);
+
         } else if (argumentArray[0]["isOutline"]) {
           return null;
         }

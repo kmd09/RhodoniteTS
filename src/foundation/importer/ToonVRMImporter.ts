@@ -1,9 +1,7 @@
-import ComponentRepository from "../core/ComponentRepository";
 import Entity from "../core/Entity";
 import EntityRepository from "../core/EntityRepository";
 import Gltf2Importer from "./Gltf2Importer";
 import { GltfLoadOption, glTF2 } from "../../types/glTF";
-import MeshComponent from "../components/MeshComponent";
 import ModelConverter from "./ModelConverter";
 import PhysicsComponent from "../components/PhysicsComponent";
 import SceneGraphComponent from "../components/SceneGraphComponent";
@@ -207,14 +205,14 @@ export type VRM = {
     }
   }
 };
-export default class ToonVRMImporter {
-  private static __instance: ToonVRMImporter;
+export default class VRMImporter {
+  private static __instance: VRMImporter;
 
   private constructor() { }
 
   static getInstance() {
     if (!this.__instance) {
-      this.__instance = new ToonVRMImporter();
+      this.__instance = new VRMImporter();
     }
     return this.__instance;
   }
@@ -237,12 +235,15 @@ export default class ToonVRMImporter {
       if (options.defaultMaterialHelperName === "createUTS2Material") {
         options.defaultMaterialHelperName = null;
       }
+      if (options.defaultMaterialHelperArgumentArray == null) {
+        options.defaultMaterialHelperArgumentArray = [{}];
+      }
     } else {
       options = {
         files: {},
         loaderExtension: null,
         defaultMaterialHelperName: null,
-        defaultMaterialHelperArgumentArray: [],
+        defaultMaterialHelperArgumentArray: [{}],
         statesOfElements: [
           {
             targets: [], //["name_foo", "name_boo"],
@@ -262,55 +263,40 @@ export default class ToonVRMImporter {
     const gltf2Importer = Gltf2Importer.getInstance();
     const modelConverter = ModelConverter.getInstance();
 
+
     const gltfModel = await gltf2Importer.import(uri, options);
 
     const textures = this.__createTextures(gltfModel);
-    const materialPropertiesArray = this.__createMaterialPropertiesArray(gltfModel, textures.length - 2, textures.length - 1);
+    const helperArgument0 = gltfModel.asset.extras!.rnLoaderOptions!.defaultMaterialHelperArgumentArray[0];
+    helperArgument0["textures"] = textures;
+
+    const materialPropertiesArray = this.__createMaterialPropertiesArray(gltfModel, textures.length);
     gltfModel.extensions.VRM["rnExtension"] = { materialPropertiesArray: materialPropertiesArray };
 
-    let helperArgument = gltfModel.asset.extras!.rnLoaderOptions!.defaultMaterialHelperArgumentArray;
-    if (helperArgument == null) {
-      helperArgument = [{}];
-    }
-    const helperArgument0 = gltfModel.asset.extras!.rnLoaderOptions!.defaultMaterialHelperArgumentArray[0];
-    helperArgument0["isOutline"] = false;
-    helperArgument0["textures"] = textures;
-    // if (helperArgument0["maxInstancesNumber"] == null) {
-    //   helperArgument0["maxInstancesNumber"] = 100;
-    // }
-
-
-    const componentRepository = ComponentRepository.getInstance();
-    let meshComponentsAll = <MeshComponent[]>componentRepository.getComponentsWithType(MeshComponent);
-
-    let meshComponentsOld = <MeshComponent[]>meshComponentsAll.slice();
-    const rootEntity = modelConverter.convertToRhodoniteObject(gltfModel);
-
-    let meshComponentsInRootEntity;
-    if (meshComponentsAll.length === 0) {
-      meshComponentsInRootEntity = <MeshComponent[]>componentRepository.getComponentsWithType(MeshComponent).slice();
-      meshComponentsAll = <MeshComponent[]>componentRepository.getComponentsWithType(MeshComponent);
-    } else {
-      meshComponentsInRootEntity = <MeshComponent[]>meshComponentsAll.slice();
-      for (let i = 0; i < meshComponentsOld.length; i++) {
-        const deleteIndex = meshComponentsInRootEntity.indexOf(meshComponentsOld[i]);
-        meshComponentsInRootEntity.splice(deleteIndex, 1);
+    let existOutline = false;
+    for (let materialProperties of materialPropertiesArray) {
+      if (materialProperties[0][13] !== 0) {
+        existOutline = true;
+        break;
       }
     }
 
-    helperArgument0["isOutline"] = true;
 
-    meshComponentsOld = <MeshComponent[]>meshComponentsAll.slice();
-    const outlineEntity = modelConverter.convertToRhodoniteObject(gltfModel);
-    const meshComponentsInOutlineEntity = <MeshComponent[]>meshComponentsAll.slice();
-    for (let i = 0; i < meshComponentsOld.length; i++) {
-      const deleteIndex = meshComponentsInOutlineEntity.indexOf(meshComponentsOld[i]);
-      meshComponentsInOutlineEntity.splice(deleteIndex, 1);
+    const rootGroups = [];
+
+    helperArgument0["isOutline"] = false;
+    const rootGroupMain = modelConverter.convertToRhodoniteObject(gltfModel);
+    this.readSpringBone(rootGroupMain, gltfModel);
+    rootGroups.push(rootGroupMain);
+
+    if (existOutline) {
+      helperArgument0["isOutline"] = true;
+      const rootGroupOutline = modelConverter.convertToRhodoniteObject(gltfModel);
+      this.readSpringBone(rootGroupOutline, gltfModel);
+      rootGroups.push(rootGroupOutline);
     }
 
-    this.readSpringBone(rootEntity, gltfModel);
-
-    return [rootEntity, outlineEntity];
+    return rootGroups;
   }
 
   readSpringBone(rootEntity: Entity, gltfModel: VRM) {
@@ -392,9 +378,12 @@ export default class ToonVRMImporter {
     return rnTextures;
   }
 
-  private __createMaterialPropertiesArray(gltfModel: glTF2, dummyWhiteTextureNumber: number, dummyBlackTextureNumber: number) {
+  private __createMaterialPropertiesArray(gltfModel: glTF2, texturesLength: number) {
     const materialProperties = gltfModel.extensions.VRM.materialProperties;
     const materialPropertiesArray: any = [];
+
+    const dummyWhiteTextureNumber = texturesLength - 2;
+    const dummyBlackTextureNumber = texturesLength - 1;
 
     for (let i = 0; i < materialProperties.length; i++) {
       // ----------------------------------------------------------------------------------
@@ -496,13 +485,15 @@ export default class ToonVRMImporter {
       vectorPropertiesArray[7]   = (vectorProperties["_MatCapColor"]      != null ? vectorProperties["_MatCapColor"]      : [1,1,1,1]);
       vectorPropertiesArray[8]   = (vectorProperties["_Emissive_Color"]   != null ? vectorProperties["_Emissive_Color"]   : [0,0,0,1]);
       vectorPropertiesArray[9]   = (vectorProperties["_ColorShift"]       != null ? vectorProperties["_ColorShift"]       : [0,0,0,1]);
-      vectorPropertiesArray[10]   = (vectorProperties["_ViewShift"]        != null ? vectorProperties["_ViewShift"]        : [0,0,0,1]);
-      vectorPropertiesArray[11]   = (vectorProperties["_Outline_Color"]    != null ? vectorProperties["_Outline_Color"]    : [0.5,0.5,0.5,1]);
+      vectorPropertiesArray[10]  = (vectorProperties["_ViewShift"]        != null ? vectorProperties["_ViewShift"]        : [0,0,0,1]);
+      vectorPropertiesArray[11]  = (vectorProperties["_Outline_Color"]    != null ? vectorProperties["_Outline_Color"]    : [0.5,0.5,0.5,1]);
 
       // ----------------------------------------------------------------------------------
       // do not set initial value
+
       const textureProperties = materialProperties[i].textureProperties;
       const texturePropertiesArray: any[] = [];
+
       texturePropertiesArray[0]  = (textureProperties["_MainTex"]             != null ? textureProperties["_MainTex"]             : dummyWhiteTextureNumber);
       texturePropertiesArray[1]  = (textureProperties["_1st_ShadeMap"]        != null ? textureProperties["_1st_ShadeMap"]        : dummyWhiteTextureNumber);
       texturePropertiesArray[2]  = (textureProperties["_2nd_ShadeMap"]        != null ? textureProperties["_2nd_ShadeMap"]        : dummyWhiteTextureNumber);
@@ -510,19 +501,18 @@ export default class ToonVRMImporter {
       texturePropertiesArray[3]  = (textureProperties["_ShadingGradeMap"]     != null ? textureProperties["_ShadingGradeMap"]     : dummyWhiteTextureNumber);
 
       texturePropertiesArray[4]  = (textureProperties["_ClippingMask"]        != null ? textureProperties["_ClippingMask"]        : dummyWhiteTextureNumber);
-      texturePropertiesArray[5]  = (textureProperties["_NormalMap"]           != null ? textureProperties["_NormalMap"]           : dummyWhiteTextureNumber);
-      texturePropertiesArray[6]  = (textureProperties["_HighColor_Tex"]       != null ? textureProperties["_HighColor_Tex"]       : dummyWhiteTextureNumber);
+      texturePropertiesArray[5]  = (textureProperties["_NormalMap"]           != null ? textureProperties["_NormalMap"]           : dummyBlackTextureNumber);
+      texturePropertiesArray[6]  = (textureProperties["_HighColor_Tex"]       != null ? textureProperties["_HighColor_Tex"]       : dummyBlackTextureNumber);
 
-      texturePropertiesArray[7]  = (textureProperties["_Set_HighColorMask"]   != null ? textureProperties["_Set_HighColorMask"]   : dummyWhiteTextureNumber);
-      texturePropertiesArray[8]  = (textureProperties["_Set_RimLightMask"]    != null ? textureProperties["_Set_RimLightMask"]    : dummyWhiteTextureNumber);
-      texturePropertiesArray[9]  = (textureProperties["_MatCap_Sampler"]      != null ? textureProperties["_MatCap_Sampler"]      : dummyWhiteTextureNumber);
-      texturePropertiesArray[10] = (textureProperties["_NormalMapForMatCap "] != null ? textureProperties["_NormalMapForMatCap "] : dummyWhiteTextureNumber);
-      texturePropertiesArray[11] = (textureProperties["_Set_MatcapMask"]      != null ? textureProperties["_Set_MatcapMask"]      : dummyWhiteTextureNumber);
-      texturePropertiesArray[12] = (textureProperties["_Emissive_Tex "]       != null ? textureProperties["_Emissive_Tex "]       : dummyBlackTextureNumber);
-      texturePropertiesArray[13] = (textureProperties["_Outline_Sampler"]     != null ? textureProperties["_Outline_Sampler"]     : dummyWhiteTextureNumber);
-      texturePropertiesArray[14] = (textureProperties["_OutlineTex"]          != null ? textureProperties["_OutlineTex"]          : dummyWhiteTextureNumber);
-      texturePropertiesArray[15] = (textureProperties["_BakedNormal"]         != null ? textureProperties["_BakedNormal"]         : dummyWhiteTextureNumber);
-
+      texturePropertiesArray[7]  = (textureProperties["_Set_HighColorMask"]   != null ? textureProperties["_Set_HighColorMask"]   : dummyBlackTextureNumber);
+      texturePropertiesArray[8]  = (textureProperties["_Set_RimLightMask"]    != null ? textureProperties["_Set_RimLightMask"]    : dummyBlackTextureNumber);
+      texturePropertiesArray[9]  = (textureProperties["_MatCap_Sampler"]      != null ? textureProperties["_MatCap_Sampler"]      : dummyBlackTextureNumber);
+      texturePropertiesArray[10] = (textureProperties["_NormalMapForMatCap "] != null ? textureProperties["_NormalMapForMatCap "] : dummyBlackTextureNumber);
+      texturePropertiesArray[11] = (textureProperties["_Set_MatcapMask"]      != null ? textureProperties["_Set_MatcapMask"]      : dummyBlackTextureNumber);
+      texturePropertiesArray[12] = (textureProperties["_Emissive_Tex"]        != null ? textureProperties["_Emissive_Tex"]        : dummyBlackTextureNumber);
+      texturePropertiesArray[13] = (textureProperties["_Outline_Sampler"]     != null ? textureProperties["_Outline_Sampler"]     : dummyBlackTextureNumber);
+      texturePropertiesArray[14] = (textureProperties["_OutlineTex"]          != null ? textureProperties["_OutlineTex"]          : dummyBlackTextureNumber);
+      texturePropertiesArray[15] = (textureProperties["_BakedNormal"]         != null ? textureProperties["_BakedNormal"]         : dummyBlackTextureNumber);
 
       materialPropertiesArray.push([floatPropertiesArray, vectorPropertiesArray, texturePropertiesArray]);
 
@@ -531,3 +521,4 @@ export default class ToonVRMImporter {
   }
 
 }
+
