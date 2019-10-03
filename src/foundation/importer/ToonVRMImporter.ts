@@ -389,53 +389,68 @@ export default class VRMImporter {
       // ----------------------------------------------------------------------------------
       const floatProperties = materialProperties[i].floatProperties;
       const floatPropertiesArray: number[] = [];
+      console.log("before " + floatProperties["_Use_BaseAs1st"]);
 
-      floatPropertiesArray[0]  = (floatProperties["_IsBaseMapAlphaAsClippingMask "]   != null ? floatProperties["_IsBaseMapAlphaAsClippingMask "]   : 0.0);
-      floatPropertiesArray[1]  = (floatProperties["_Inverse_Clipping "]               != null ? floatProperties["_Inverse_Clipping "]               : 0.0);
-      floatPropertiesArray[2]  = (floatProperties["_Is_LightColor_Base "]             != null ? floatProperties["_Is_LightColor_Base "]             : 1.0);
+      floatPropertiesArray[0]  = (floatProperties["_IsBaseMapAlphaAsClippingMask"]   != null ? floatProperties["_IsBaseMapAlphaAsClippingMask"]   : 0.0);
+      floatPropertiesArray[1]  = (floatProperties["_Inverse_Clipping"]               != null ? floatProperties["_Inverse_Clipping"]               : 0.0);
+      floatPropertiesArray[2]  = (floatProperties["_Is_LightColor_Base"]             != null ? floatProperties["_Is_LightColor_Base"]             : 1.0);
 
-      floatPropertiesArray[3]  = (floatProperties["_Use_BaseAs1st "]                  != null ? floatProperties["_Use_BaseAs1st "]                  : 0.0);
-      floatPropertiesArray[4]  = (floatProperties["_Is_LightColor_1st_Shade "]        != null ? floatProperties["_Is_LightColor_1st_Shade "]        : 1.0);
-      floatPropertiesArray[5]  = (floatProperties["_Use_1stAs2nd "]                   != null ? floatProperties["_Use_1stAs2nd "]                   : 0.0);
-      floatPropertiesArray[6]  = (floatProperties["_Is_LightColor_2nd_Shade "]        != null ? floatProperties["_Is_LightColor_2nd_Shade "]        : 1.0);
+      floatPropertiesArray[3]  = (floatProperties["_Use_BaseAs1st"]                  != null ? floatProperties["_Use_BaseAs1st"]                  : 0.0);
+      floatPropertiesArray[4]  = (floatProperties["_Is_LightColor_1st_Shade"]        != null ? floatProperties["_Is_LightColor_1st_Shade"]        : 1.0);
+      floatPropertiesArray[5]  = (floatProperties["_Use_1stAs2nd"]                   != null ? floatProperties["_Use_1stAs2nd"]                   : 0.0);
+      floatPropertiesArray[6]  = (floatProperties["_Is_LightColor_2nd_Shade"]        != null ? floatProperties["_Is_LightColor_2nd_Shade"]        : 1.0);
 
-      floatPropertiesArray[7]  = (floatProperties["_Is_NormalMapToBase "]             != null ? floatProperties["_Is_NormalMapToBase "]             : 0.0);
+      floatPropertiesArray[7]  = (floatProperties["_Is_NormalMapToBase"]             != null ? floatProperties["_Is_NormalMapToBase"]             : 0.0);
 
-      floatPropertiesArray[8]  = (floatProperties["_Set_SystemShadowsToBase "]        != null ? floatProperties["_Set_SystemShadowsToBase "]        : 1.0);
-      floatPropertiesArray[9]  = (floatProperties["_Is_Filter_HiCutPointLightColor "] != null ? floatProperties["_Is_Filter_HiCutPointLightColor "] : 1.0);
-      floatPropertiesArray[10] = (floatProperties["_Is_LightColor_HighColor "]        != null ? floatProperties["_Is_LightColor_HighColor "]        : 1.0);
-      floatPropertiesArray[11] = (floatProperties["_Is_NormalMapToHighColor "]        != null ? floatProperties["_Is_NormalMapToHighColor "]        : 0.0);
-      floatPropertiesArray[12] = (floatProperties["_Is_SpecularToHighColor "]         != null ? floatProperties["_Is_SpecularToHighColor "]         : 0.0);
-      floatPropertiesArray[13] = (floatProperties["_Is_BlendAddToHiColor "]           != null ? floatProperties["_Is_BlendAddToHiColor "]           : 0.0);
-      floatPropertiesArray[14] = (floatProperties["_Is_UseTweakHighColorOnShadow "]   != null ? floatProperties["_Is_UseTweakHighColorOnShadow "]   : 0.0);
+      floatPropertiesArray[8]  = (floatProperties["_Set_SystemShadowsToBase"]        != null ? floatProperties["_Set_SystemShadowsToBase"]        : 1.0);
+      floatPropertiesArray[9]  = (floatProperties["_Is_Filter_HiCutPointLightColor"] != null ? floatProperties["_Is_Filter_HiCutPointLightColor"] : 1.0);
+      floatPropertiesArray[10] = (floatProperties["_Is_LightColor_HighColor"]        != null ? floatProperties["_Is_LightColor_HighColor"]        : 1.0);
+      floatPropertiesArray[11] = (floatProperties["_Is_NormalMapToHighColor"]        != null ? floatProperties["_Is_NormalMapToHighColor"]        : 0.0);
+      floatPropertiesArray[12] = (floatProperties["_Is_SpecularToHighColor"]         != null ? floatProperties["_Is_SpecularToHighColor"]         : 0.0);
+      // -------------------------------------------------------------- 
+      // FIXME: enable this line cause RangeError on some model
+      // floatPropertiesArray[13] = (floatProperties["_Is_BlendAddToHiColor"]           != null ? floatProperties["_Is_BlendAddToHiColor"]        : 0.0);
+      // -------------------------------------------------------------- 
+      // Buffer.ts:36 Uncaught (in promise) RangeError: Invalid typed array length: 227312
+      //   at new Uint8Array (<anonymous>)
+      //   at Buffer.takeBufferView (Buffer.ts:36)
+      //   at ModelConverter.__copyRnAccessorAndBufferView (ModelConverter.ts:935)
+      //   at ModelConverter.__setupMesh (ModelConverter.ts:466)
+      //   at ModelConverter.__setupObjects (ModelConverter.ts:311)
+      //   at ModelConverter.convertToRhodoniteObject (ModelConverter.ts:131)
+      //   at VRMImporter.eval (ToonVRMImporter.ts:105)
+      //   at Generator.next (<anonymous>)
+      //   at fulfilled (ToonVRMImporter.ts:16)
+      floatPropertiesArray[13] = 0.0; 
+      floatPropertiesArray[14] = (floatProperties["_Is_UseTweakHighColorOnShadow"]   != null ? floatProperties["_Is_UseTweakHighColorOnShadow"]   : 0.0);
 
-      floatPropertiesArray[15] = (floatProperties["_Is_LightColor_RimLight "]         != null ? floatProperties["_Is_LightColor_RimLight "]         : 1.0);
-      floatPropertiesArray[16] = (floatProperties["_Is_NormalMapToRimLight "]         != null ? floatProperties["_Is_NormalMapToRimLight "]         : 0.0);
-      floatPropertiesArray[17] = (floatProperties["_Is_LightColor_Ap_RimLight "]      != null ? floatProperties["_Is_LightColor_Ap_RimLight "]      : 1.0);
-      floatPropertiesArray[18] = (floatProperties["_Is_LightColor_MatCap "]           != null ? floatProperties["_Is_LightColor_MatCap "]           : 1.0);
-      floatPropertiesArray[19] = (floatProperties["_Is_BlendAddToMatCap "]            != null ? floatProperties["_Is_BlendAddToMatCap "]            : 1.0);
+      floatPropertiesArray[15] = (floatProperties["_Is_LightColor_RimLight"]         != null ? floatProperties["_Is_LightColor_RimLight"]         : 1.0);
+      floatPropertiesArray[16] = (floatProperties["_Is_NormalMapToRimLight"]         != null ? floatProperties["_Is_NormalMapToRimLight"]         : 0.0);
+      floatPropertiesArray[17] = (floatProperties["_Is_LightColor_Ap_RimLight"]      != null ? floatProperties["_Is_LightColor_Ap_RimLight"]      : 1.0);
+      floatPropertiesArray[18] = (floatProperties["_Is_LightColor_MatCap"]           != null ? floatProperties["_Is_LightColor_MatCap"]           : 1.0);
+      floatPropertiesArray[19] = (floatProperties["_Is_BlendAddToMatCap"]            != null ? floatProperties["_Is_BlendAddToMatCap"]            : 1.0);
 
-      floatPropertiesArray[20] = (floatProperties["_CameraRolling_Stabilizer "]       != null ? floatProperties["_CameraRolling_Stabilizer "]       : 0.0);
-      floatPropertiesArray[21] = (floatProperties["_Is_NormalMapForMatCap "]          != null ? floatProperties["_Is_NormalMapForMatCap "]          : 0.0);
-      floatPropertiesArray[22] = (floatProperties["_Is_UseTweakMatCapOnShadow "]      != null ? floatProperties["_Is_UseTweakMatCapOnShadow "]      : 0.0);
-      floatPropertiesArray[23] = (floatProperties["_Is_Ortho "]                       != null ? floatProperties["_Is_Ortho "]                       : 0.0);
-      floatPropertiesArray[24] = (floatProperties["_Is_PingPong_Base "]               != null ? floatProperties["_Is_PingPong_Base "]               : 0.0);
-      floatPropertiesArray[25] = (floatProperties["_Is_ColorShift "]                  != null ? floatProperties["_Is_ColorShift "]                  : 0.0);
-      floatPropertiesArray[26] = (floatProperties["_Is_ViewShift "]                   != null ? floatProperties["_Is_ViewShift "]                   : 0.0);
-      floatPropertiesArray[27] = (floatProperties["_Is_ViewCoord_Scroll "]            != null ? floatProperties["_Is_ViewCoord_Scroll "]            : 0.0);
+      floatPropertiesArray[20] = (floatProperties["_CameraRolling_Stabilizer"]       != null ? floatProperties["_CameraRolling_Stabilizer"]       : 0.0);
+      floatPropertiesArray[21] = (floatProperties["_Is_NormalMapForMatCap"]          != null ? floatProperties["_Is_NormalMapForMatCap"]          : 0.0);
+      floatPropertiesArray[22] = (floatProperties["_Is_UseTweakMatCapOnShadow"]      != null ? floatProperties["_Is_UseTweakMatCapOnShadow"]      : 0.0);
+      floatPropertiesArray[23] = (floatProperties["_Is_Ortho"]                       != null ? floatProperties["_Is_Ortho"]                       : 0.0);
+      floatPropertiesArray[24] = (floatProperties["_Is_PingPong_Base"]               != null ? floatProperties["_Is_PingPong_Base"]               : 0.0);
+      floatPropertiesArray[25] = (floatProperties["_Is_ColorShift"]                  != null ? floatProperties["_Is_ColorShift"]                  : 0.0);
+      floatPropertiesArray[26] = (floatProperties["_Is_ViewShift"]                   != null ? floatProperties["_Is_ViewShift"]                   : 0.0);
+      floatPropertiesArray[27] = (floatProperties["_Is_ViewCoord_Scroll"]            != null ? floatProperties["_Is_ViewCoord_Scroll"]            : 0.0);
 
-      floatPropertiesArray[28] = (floatProperties["_RimLight "]                       != null ? floatProperties["_RimLight "]                       : 0.0);
-      floatPropertiesArray[29] = (floatProperties["_RimLight_FeatherOff "]            != null ? floatProperties["_RimLight_FeatherOff "]            : 0.0);
-      floatPropertiesArray[30] = (floatProperties["_LightDirection_MaskOn "]          != null ? floatProperties["_LightDirection_MaskOn "]          : 0.0);
-      floatPropertiesArray[31] = (floatProperties["_Add_Antipodean_RimLight "]        != null ? floatProperties["_Add_Antipodean_RimLight "]        : 0.0);
-      floatPropertiesArray[32] = (floatProperties["_Ap_RimLight_FeatherOff "]         != null ? floatProperties["_Ap_RimLight_FeatherOff "]         : 0.0);
-      floatPropertiesArray[33] = (floatProperties["_MatCap "]                         != null ? floatProperties["_MatCap "]                         : 0.0);
-      floatPropertiesArray[34] = (floatProperties["_Inverse_MatcapMask "]             != null ? floatProperties["_Inverse_MatcapMask "]             : 0.0);
-      floatPropertiesArray[35] = (floatProperties["_Is_BlendBaseColor "]              != null ? floatProperties["_Is_BlendBaseColor "]              : 0.0);
-      floatPropertiesArray[36] = (floatProperties["_Is_LightColor_Outline "]          != null ? floatProperties["_Is_LightColor_Outline "]          : 1.0);
-      floatPropertiesArray[37] = (floatProperties["_Is_OutlineTex "]                  != null ? floatProperties["_Is_OutlineTex "]                  : 0.0);
-      floatPropertiesArray[38] = (floatProperties["_Is_BakedNormal "]                 != null ? floatProperties["_Is_BakedNormal "]                 : 0.0);
-      floatPropertiesArray[39] = (floatProperties["_Is_Filter_LightColor "]           != null ? floatProperties["_Is_Filter_LightColor "]           : 0.0);
+      floatPropertiesArray[28] = (floatProperties["_RimLight"]                       != null ? floatProperties["_RimLight"]                       : 0.0);
+      floatPropertiesArray[29] = (floatProperties["_RimLight_FeatherOff"]            != null ? floatProperties["_RimLight_FeatherOff"]            : 0.0);
+      floatPropertiesArray[30] = (floatProperties["_LightDirection_MaskOn"]          != null ? floatProperties["_LightDirection_MaskOn"]          : 0.0);
+      floatPropertiesArray[31] = (floatProperties["_Add_Antipodean_RimLight"]        != null ? floatProperties["_Add_Antipodean_RimLight"]        : 0.0);
+      floatPropertiesArray[32] = (floatProperties["_Ap_RimLight_FeatherOff"]         != null ? floatProperties["_Ap_RimLight_FeatherOff"]         : 0.0);
+      floatPropertiesArray[33] = (floatProperties["_MatCap"]                         != null ? floatProperties["_MatCap"]                         : 0.0);
+      floatPropertiesArray[34] = (floatProperties["_Inverse_MatcapMask"]             != null ? floatProperties["_Inverse_MatcapMask"]             : 0.0);
+      floatPropertiesArray[35] = (floatProperties["_Is_BlendBaseColor"]              != null ? floatProperties["_Is_BlendBaseColor"]              : 0.0);
+      floatPropertiesArray[36] = (floatProperties["_Is_LightColor_Outline"]          != null ? floatProperties["_Is_LightColor_Outline"]          : 1.0);
+      floatPropertiesArray[37] = (floatProperties["_Is_OutlineTex"]                  != null ? floatProperties["_Is_OutlineTex"]                  : 0.0);
+      floatPropertiesArray[38] = (floatProperties["_Is_BakedNormal"]                 != null ? floatProperties["_Is_BakedNormal"]                 : 0.0);
+      floatPropertiesArray[39] = (floatProperties["_Is_Filter_LightColor"]           != null ? floatProperties["_Is_Filter_LightColor"]           : 0.0);
 
       floatPropertiesArray[40] = (floatProperties["_Clipping_Level"]                  != null ? floatProperties["_Clipping_Level"]                  : 0.0);
       floatPropertiesArray[41] = (floatProperties["_BumpScale"]                       != null ? floatProperties["_BumpScale"]                       : 1.0);
@@ -469,7 +484,7 @@ export default class VRMImporter {
       floatPropertiesArray[66] = (floatProperties["_Scroll_EmissiveV"]                != null ? floatProperties["_Scroll_EmissiveV"]                : 0.0);
       floatPropertiesArray[67] = (floatProperties["_Rotate_EmissiveUV"]               != null ? floatProperties["_Rotate_EmissiveUV"]               : 0.0);
       floatPropertiesArray[68] = (floatProperties["_ColorShift_Speed"]                != null ? floatProperties["_ColorShift_Speed"]                : 0.0);
-      floatPropertiesArray[69] = (floatProperties["_Tweak_transparency "]             != null ? floatProperties["_Tweak_transparency "]             : 0.0);  // range(-1, 1)
+      floatPropertiesArray[69] = (floatProperties["_Tweak_transparency"]             != null ? floatProperties["_Tweak_transparency"]             : 0.0);  // range(-1, 1)
 
       // ----------------------------------------------------------------------------------
       const vectorProperties = materialProperties[i].vectorProperties;
@@ -507,7 +522,7 @@ export default class VRMImporter {
       texturePropertiesArray[7]  = (textureProperties["_Set_HighColorMask"]   != null ? textureProperties["_Set_HighColorMask"]   : dummyBlackTextureNumber);
       texturePropertiesArray[8]  = (textureProperties["_Set_RimLightMask"]    != null ? textureProperties["_Set_RimLightMask"]    : dummyBlackTextureNumber);
       texturePropertiesArray[9]  = (textureProperties["_MatCap_Sampler"]      != null ? textureProperties["_MatCap_Sampler"]      : dummyBlackTextureNumber);
-      texturePropertiesArray[10] = (textureProperties["_NormalMapForMatCap "] != null ? textureProperties["_NormalMapForMatCap "] : dummyBlackTextureNumber);
+      texturePropertiesArray[10] = (textureProperties["_NormalMapForMatCap"] != null ? textureProperties["_NormalMapForMatCap"] : dummyBlackTextureNumber);
       texturePropertiesArray[11] = (textureProperties["_Set_MatcapMask"]      != null ? textureProperties["_Set_MatcapMask"]      : dummyBlackTextureNumber);
       texturePropertiesArray[12] = (textureProperties["_Emissive_Tex"]        != null ? textureProperties["_Emissive_Tex"]        : dummyBlackTextureNumber);
       texturePropertiesArray[13] = (textureProperties["_Outline_Sampler"]     != null ? textureProperties["_Outline_Sampler"]     : dummyBlackTextureNumber);
@@ -515,7 +530,7 @@ export default class VRMImporter {
       texturePropertiesArray[15] = (textureProperties["_BakedNormal"]         != null ? textureProperties["_BakedNormal"]         : dummyBlackTextureNumber);
 
       materialPropertiesArray.push([floatPropertiesArray, vectorPropertiesArray, texturePropertiesArray]);
-      console.log(texturePropertiesArray);
+      console.log("res " + floatPropertiesArray[3]);
 
     }
 
