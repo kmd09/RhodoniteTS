@@ -123,7 +123,7 @@ export default class UTS2MaterialNode extends AbstractMaterialNode {
   static readonly _Outline_Sampler                 = new ShaderSemanticsClass({ str: 'Outline_Sampler'});
   static readonly _OutlineTex                      = new ShaderSemanticsClass({ str: 'OutlineTex'});
   static readonly _BakedNormal                     = new ShaderSemanticsClass({ str: 'BakedNormal'});
-
+  static readonly _Outline_Width                   = new ShaderSemanticsClass({ str: 'Outline_Width'});
 
   static readonly Aspect = new ShaderSemanticsClass({ str: 'aspect' });
   static readonly CameraUp = new ShaderSemanticsClass({ str: 'cameraUp' });
@@ -222,6 +222,7 @@ export default class UTS2MaterialNode extends AbstractMaterialNode {
       this.__floatPropertiesArray[68] = 0.0;  // _Rotate_EmissiveUV
       this.__floatPropertiesArray[69] = 0.0;  // _ColorShift_Speed
       this.__floatPropertiesArray[70] = 0.0;  // _Tweak_transparency
+      this.__floatPropertiesArray[71] = 0.0;  // _Outline_Width
       // ---------------------------------------------------------------------------
       this.__vectorPropertiesArray[0] = [1, 1, 1, 1];  // _Color
       this.__vectorPropertiesArray[1] = [1, 1, 1, 1];  // _BaseColor
@@ -619,6 +620,11 @@ export default class UTS2MaterialNode extends AbstractMaterialNode {
         semantic: UTS2MaterialNode._Tweak_transparency, componentType: ComponentType.Float, compositionType: CompositionType.Scalar,
         stage: ShaderType.PixelShader, isSystem: false, updateInteval: ShaderVariableUpdateInterval.EveryTime,
         initialValue: new Scalar(this.__floatPropertiesArray[70]), min: 0, max: 1,
+      },
+      {
+        semantic: UTS2MaterialNode._Outline_Width, componentType: ComponentType.Float, compositionType: CompositionType.Scalar,
+        stage: ShaderType.PixelShader, isSystem: false, updateInteval: ShaderVariableUpdateInterval.EveryTime,
+        initialValue: new Scalar(this.__floatPropertiesArray[71]), min: 0, max: 1,
       },
       // ---------------------------------------------------------------------------
       {
