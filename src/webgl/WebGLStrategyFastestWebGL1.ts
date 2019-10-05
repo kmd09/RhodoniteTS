@@ -634,7 +634,9 @@ export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
         //   continue;
         // }
 
-        const shaderProgramUid = primitive.material!._shaderProgramUid;
+        const material: Material = renderPass.getAppropreateMaterial(entity, primitive.material!);
+
+        const shaderProgramUid = material._shaderProgramUid;
         if (shaderProgramUid === -1) {
           continue;
         }
@@ -647,7 +649,7 @@ export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
 
           gl.uniform1i((shaderProgram as any).dataTexture, 7);
 
-          this.__setupMaterial(primitive.material!, renderPass);
+          this.__setupMaterial(material, renderPass);
 
 
           WebGLStrategyFastestWebGL1.__shaderProgram = shaderProgram;
@@ -657,14 +659,13 @@ export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
         if (firstTime) {
           this.__webglResourceRepository.bindTexture2D(7, this.__dataTextureUid);
         }
-        this.__setCurrentComponentSIDsForEachPrimitive(gl, renderPass, primitive.material!, entity);
+        this.__setCurrentComponentSIDsForEachPrimitive(gl, renderPass, material, entity);
 
-        const material = primitive.material;
         if (material != null) {
           WebGLStrategyFastestWebGL1.setWebGLStatesOfMaterial(material, renderPass, gl);
 
           material.setParemetersForGPU({
-            material: primitive.material!, shaderProgram: WebGLStrategyFastestWebGL1.__shaderProgram, firstTime: firstTime,
+            material: material, shaderProgram: WebGLStrategyFastestWebGL1.__shaderProgram, firstTime: firstTime,
             args: {
               glw: glw,
               entity: entity,

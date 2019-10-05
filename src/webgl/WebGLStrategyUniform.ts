@@ -331,13 +331,7 @@ mat3 get_normalMatrix(float instanceId) {
 
       this.attachVertexDataInner(meshComponent.mesh, primitive, i, glw, CGAPIResourceRepository.InvalidCGAPIResourceUid);
 
-      let material: Material;
-      if (renderPass.material != null) {
-        material = renderPass.material;
-      } else {
-        material = primitive.material!;
-      }
-
+      let material: Material = renderPass.getAppropreateMaterial(entity, primitive.material!);
       const shaderProgram = this.__webglResourceRepository.getWebGLResource(material!._shaderProgramUid)! as WebGLProgram;
       const shaderProgramUid = material._shaderProgramUid;
 
