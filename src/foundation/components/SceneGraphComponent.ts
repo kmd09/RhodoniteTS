@@ -16,6 +16,7 @@ import MeshComponent from './MeshComponent';
 import AnimationComponent from './AnimationComponent';
 import { ComponentTID, ComponentSID, EntityUID } from '../../types/CommonTypes';
 import GlobalDataRepository from '../core/GlobalDataRepository';
+import Quaternion from '../math/Quaternion';
 
 export default class SceneGraphComponent extends Component {
   private __parent?: SceneGraphComponent
@@ -34,12 +35,13 @@ export default class SceneGraphComponent extends Component {
   private static returnVector3 = MutableVector3.zero();
   public isVisible = true;
   private __animationComponent?: AnimationComponent;
+  private __rotation: Quaternion = new Quaternion(0, 0, 0, 1);
 
   // Skeletal
   public isRootJoint = false;
   public jointIndex = -1;
 
-  private static invertedMatrix44 = new MutableMatrix44([0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0]);
+  private static invertedMatrix44 = new MutableMatrix44([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
   constructor(entityUid: EntityUID, componentSid: ComponentSID, entityRepository: EntityRepository) {
     super(entityUid, componentSid, entityRepository);
@@ -47,7 +49,7 @@ export default class SceneGraphComponent extends Component {
     const thisClass = SceneGraphComponent;
 
     SceneGraphComponent.__sceneGraphs.push(this);
-//    this.__currentProcessStage = ProcessStage.Logic;
+    //    this.__currentProcessStage = ProcessStage.Logic;
 
     this.isAbleToBeParent = false;
     this.beAbleToBeParent(true);
@@ -59,7 +61,7 @@ export default class SceneGraphComponent extends Component {
   }
 
   static getTopLevelComponents(): SceneGraphComponent[] {
-    return SceneGraphComponent.__sceneGraphs.filter((sg: SceneGraphComponent)=>{
+    return SceneGraphComponent.__sceneGraphs.filter((sg: SceneGraphComponent) => {
       return sg.isTopLevel;
     });
   }
@@ -86,7 +88,7 @@ export default class SceneGraphComponent extends Component {
     // SceneGraphComponent._isAllUpdate = false;
     this.__isWorldAABBDirty = true;
 
-    this.children.forEach((child)=> {
+    this.children.forEach((child) => {
       child.setWorldMatrixDirty();
     });
   }
@@ -100,7 +102,7 @@ export default class SceneGraphComponent extends Component {
     }
   }
 
-  applyFunctionRecursively(func: Function, args:any[]) {
+  applyFunctionRecursively(func: Function, args: any[]) {
     for (let child of this.__children) {
       func(child, args);
       child.applyFunctionRecursively(func, args);
@@ -120,11 +122,11 @@ export default class SceneGraphComponent extends Component {
   }
 
   get worldMatrixInner() {
-   if (!this.__isWorldMatrixUpToDate) {
+    if (!this.__isWorldMatrixUpToDate) {
       // this._worldMatrix.identity();
-    this._worldMatrix.copyComponents(this.calcWorldMatrixRecursively(false));//this.isJoint()));
-    this.__isWorldMatrixUpToDate = true;
-   }
+      this._worldMatrix.copyComponents(this.calcWorldMatrixRecursively(false));//this.isJoint()));
+      this.__isWorldMatrixUpToDate = true;
+    }
 
     return this._worldMatrix;
   }
@@ -136,7 +138,7 @@ export default class SceneGraphComponent extends Component {
   get normalMatrixInner() {
     if (!this.__isNormalMatrixUpToDate) {
       Matrix44.invertTo(this.worldMatrixInner, SceneGraphComponent.invertedMatrix44);
-      this._normalMatrix.copyComponents((SceneGraphComponent.invertedMatrix44.transpose() as any ) as Matrix44);
+      this._normalMatrix.copyComponents((SceneGraphComponent.invertedMatrix44.transpose() as any) as Matrix44);
       this.__isNormalMatrixUpToDate = true;
     }
     return this._normalMatrix;
@@ -145,6 +147,14 @@ export default class SceneGraphComponent extends Component {
 
   get normalMatrix() {
     return this.normalMatrixInner.clone();
+  }
+
+  get rotation() {
+    return this.__rotation.clone();
+  }
+
+  set rotation(quat: Quaternion) {
+    this.__rotation.copyComponents(quat);
   }
 
   $create() {
@@ -158,12 +168,12 @@ export default class SceneGraphComponent extends Component {
 
   $logic() {
 
-//    this._worldMatrix.copyComponents(this.calcWorldMatrixRecursively(false));//this.isJoint()));
-//    const world = this.worldMatrixInner;
+    //    this._worldMatrix.copyComponents(this.calcWorldMatrixRecursively(false));//this.isJoint()));
+    //    const world = this.worldMatrixInner;
     this._worldMatrix.copyComponents(this.calcWorldMatrixRecursively(false));//this.isJoint()));
 
     const normal = this.normalMatrixInner;
-//    const normal = this.normalMatrixInner;
+    //    const normal = this.normalMatrixInner;
     // console.log(normal.toString());
   }
 
@@ -171,7 +181,7 @@ export default class SceneGraphComponent extends Component {
     // SceneGraphComponent._isAllUpdate = true;
   }
 
-  isWorldMatrixUpToDateRecursively() : boolean {
+  isWorldMatrixUpToDateRecursively(): boolean {
     if (this.__isWorldMatrixUpToDate) {
       if (this.__parent) {
         let result = this.__parent.isWorldMatrixUpToDateRecursively();
@@ -215,7 +225,7 @@ export default class SceneGraphComponent extends Component {
     }
     if (sceneGraphComponent.isAbleToBeParent) {
       const children = sceneGraphComponent.children!;
-      for (let i=0; i<children.length; i++) {
+      for (let i = 0; i < children.length; i++) {
         const hitChildren = this.flattenHierarchy(children[i], isJointMode);
         Array.prototype.push.apply(results, hitChildren);
       }

@@ -23,6 +23,7 @@ import Matrix44 from './math/Matrix44';
 import MutableMatrix22 from './math/MutableMatrix22';
 import MutableMatrix33 from './math/MutableMatrix33';
 import MutableMatrix44 from './math/MutableMatrix44';
+import MutableQuaterion from './math/MutableQuaterion';
 import { ProcessApproach } from './definitions/ProcessApproach';
 import Gltf1Importer from './importer/Gltf1Importer';
 import Gltf2Importer from './importer/Gltf2Importer';
@@ -94,6 +95,7 @@ const Rn = {
   MutableMatrix22,
   MutableMatrix33,
   MutableMatrix44,
+  MutableQuaterion,
   ProcessApproach,
   Gltf1Importer,
   Gltf2Importer,
