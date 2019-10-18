@@ -181,7 +181,7 @@ void main ()
       }
       float spotEffect = 1.0;
       if (lightType > 1.75) { // is spotlight
-        spotEffect = dot(lightDirection, lightDirection);
+        spotEffect = dot(gotLightDirection.xyz, lightDirection);
         if (spotEffect > spotCosCutoff) {
           spotEffect = pow(spotEffect, spotExponent);
         } else {
@@ -198,7 +198,8 @@ void main ()
       float shininess = get_shininess(materialSID, 0);
       int shadingModel = get_shadingModel(materialSID, 0);
 
-      vec3 viewPosition = get_viewPosition(0.0, 0);
+      float cameraSID = u_currentComponentSIDs[${WellKnownComponentTIDs.CameraComponentTID}];
+      vec3 viewPosition = get_viewPosition(cameraSID, 0);
 
       if (shadingModel == 2) {// BLINN
         // ViewDirection

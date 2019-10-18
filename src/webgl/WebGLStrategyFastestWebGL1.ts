@@ -1,12 +1,9 @@
 import WebGLResourceRepository, { VertexHandles } from "./WebGLResourceRepository";
-import { WebGLExtension } from "./WebGLExtension";
 import MemoryManager from "../foundation/core/MemoryManager";
 import Buffer from "../foundation/memory/Buffer";
-import { MathUtil } from "../foundation/math/MathUtil";
 import { PixelFormat } from "../foundation/definitions/PixelFormat";
 import { ComponentType } from "../foundation/definitions/ComponentType";
 import { TextureParameter } from "../foundation/definitions/TextureParameter";
-import GLSLShader from "./shaders/GLSLShader";
 import { BufferUse } from "../foundation/definitions/BufferUse";
 import WebGLStrategy from "./WebGLStrategy";
 import MeshComponent from "../foundation/components/MeshComponent"
@@ -30,12 +27,14 @@ import Vector4 from "../foundation/math/Vector4";
 import RenderPass from "../foundation/renderer/RenderPass";
 import CameraComponent from "../foundation/components/CameraComponent";
 import { WebGLResourceHandle, Index, CGAPIResourceHandle, Count, Byte } from "../types/CommonTypes";
-import CubeTexture from "../foundation/textures/CubeTexture";
 import GlobalDataRepository from "../foundation/core/GlobalDataRepository";
 import VectorN from "../foundation/math/VectorN";
 import { WellKnownComponentTIDs } from "../foundation/components/WellKnownComponentTIDs";
 import Entity from "../foundation/core/Entity";
 import { MiscUtil } from "../foundation/misc/MiscUtil";
+import WebGLStrategyCommonMethod from "./WebGLStrategyCommonMethod";
+import Matrix33 from "../foundation/math/Matrix33";
+import CubeTexture from "../foundation/textures/CubeTexture";
 
 export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
   private static __instance: WebGLStrategyFastestWebGL1;
@@ -47,8 +46,6 @@ export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
   private __lightComponents?: LightComponent[];
   private static __globalDataRepository = GlobalDataRepository.getInstance();
   private static __currentComponentSIDs?: VectorN;
-  private __lastRenderPassCullFace = false;
-  private static __isOpaqueMode = true;
 
   private constructor() { }
 
@@ -613,7 +610,7 @@ export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
         continue;
       }
 
-      this.setWebGLStatesBegin(idx, gl, renderPass);
+      WebGLStrategyCommonMethod.startDepthMasking(idx, gl, renderPass);
 
       const entity = meshComponent.entity;
       this.__setCurrentComponentSIDsForEachEntity(gl, renderPass, entity);
@@ -625,13 +622,6 @@ export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
 
       for (let i = 0; i < primitiveNum; i++) {
         const primitive = mesh.getPrimitiveAt(i);
-
-        // if (WebGLStrategyFastestWebGL1.isOpaqueMode() && primitive.isBlend()) {
-        //   continue;
-        // }
-        // if (WebGLStrategyFastestWebGL1.isTransparentMode() && primitive.isOpaque()) {
-        //   continue;
-        // }
 
         const shaderProgramUid = primitive.material!._shaderProgramUid;
         if (shaderProgramUid === -1) {
@@ -658,20 +648,26 @@ export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
         }
         this.__setCurrentComponentSIDsForEachPrimitive(gl, renderPass, primitive.material!, entity);
 
-        primitive.material!.setParemetersForGPU({
-          material: primitive.material!, shaderProgram: WebGLStrategyFastestWebGL1.__shaderProgram, firstTime: firstTime,
-          args: {
-            glw: glw,
-            entity: entity,
-            worldMatrix: entity.getSceneGraph().worldMatrixInner,
-            normalMatrix: entity.getSceneGraph().normalMatrixInner,
-            lightComponents: this.__lightComponents,
-            renderPass: renderPass,
-            primitive: primitive,
-            diffuseCube: meshRendererComponent.diffuseCubeMap,
-            specularCube: meshRendererComponent.specularCubeMap
-          }
-        });
+        const material = primitive.material;
+        if (material != null) {
+          WebGLStrategyCommonMethod.setCullAndBlendSettings(material, renderPass, gl);
+
+          material.setParemetersForGPU({
+            material: primitive.material!, shaderProgram: WebGLStrategyFastestWebGL1.__shaderProgram, firstTime: firstTime,
+            args: {
+              glw: glw,
+              entity: entity,
+              worldMatrix: entity.getSceneGraph().worldMatrixInner,
+              normalMatrix: entity.getSceneGraph().normalMatrixInner,
+              lightComponents: this.__lightComponents,
+              renderPass: renderPass,
+              primitive: primitive,
+              diffuseCube: meshRendererComponent.diffuseCubeMap,
+              specularCube: meshRendererComponent.specularCubeMap
+            }
+          });
+        }
+
 
         if (primitive.indicesAccessor) {
           glw.drawElementsInstanced(primitive.primitiveMode.index, primitive.indicesAccessor.elementCount, primitive.indicesAccessor.componentType.index, 0, mesh.instanceCountIncludeOriginal);
@@ -683,42 +679,14 @@ export default class WebGLStrategyFastestWebGL1 implements WebGLStrategy {
       }
     }
 
-    this.setWebGLStatesEnd(gl, renderPass);
     this.__lastRenderPassTickCount = renderPassTickCount;
     return false;
   }
 
-  static isOpaqueMode() {
-    return WebGLStrategyFastestWebGL1.__isOpaqueMode;
-  }
-
-  static isTransparentMode() {
-    return !WebGLStrategyFastestWebGL1.__isOpaqueMode;
-  }
-
-  private setWebGLStatesBegin(idx: number, gl: any, renderPass: RenderPass) {
-    if (idx === MeshRendererComponent.firstTranparentIndex) {
-      gl.enable(gl.BLEND);
-      gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE);
-      gl.depthMask(false);
-      WebGLStrategyFastestWebGL1.__isOpaqueMode = false;
-    }
-    if (renderPass.cullface !== this.__lastRenderPassCullFace) {
-      if (renderPass.cullface) {
-        gl.enable(gl.CULL_FACE);
-      }
-      else {
-        gl.disable(gl.CULL_FACE);
-      }
-      this.__lastRenderPassCullFace = renderPass.cullface;
-    }
-  }
-
-  private setWebGLStatesEnd(gl: WebGLRenderingContext, renderPass: RenderPass) {
-    gl.disable(gl.BLEND);
-    gl.depthMask(true);
-    WebGLStrategyFastestWebGL1.__isOpaqueMode = true;
+  $render(idx: Index, meshComponent: MeshComponent, worldMatrix: Matrix44, normalMatrix: Matrix33, entity: Entity, renderPass: RenderPass, renderPassTickCount: Count, diffuseCube?: CubeTexture, specularCube?: CubeTexture) {
+    const glw = this.__webglResourceRepository.currentWebGLContextWrapper!;
+    const gl = glw.getRawContext();
+    WebGLStrategyCommonMethod.endDepthMasking(idx, gl, renderPass);
   }
 
 }
-
