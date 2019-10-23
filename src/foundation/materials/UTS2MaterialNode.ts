@@ -739,7 +739,7 @@ export default class UTS2MaterialNode extends AbstractMaterialNode {
         initialValue: [9, textures[materialPropertiesArray[2][9]]], min: 0, max: Number.MAX_SAFE_INTEGER,
       },
       {
-        semantic: UTS2MaterialNode._NormalMapForMatCap , componentType: ComponentType.Int, compositionType: CompositionType.Texture2D,
+        semantic: UTS2MaterialNode._NormalMapForMatCap, componentType: ComponentType.Int, compositionType: CompositionType.Texture2D,
         stage: ShaderType.PixelShader, isSystem: false, updateInteval: ShaderVariableUpdateInterval.EveryTime,
         initialValue: [10, textures[materialPropertiesArray[2][10]]], min: 0, max: Number.MAX_SAFE_INTEGER,
       },
@@ -749,7 +749,7 @@ export default class UTS2MaterialNode extends AbstractMaterialNode {
         initialValue: [11, textures[materialPropertiesArray[2][11]]], min: 0, max: Number.MAX_SAFE_INTEGER,
       },
       {
-        semantic: UTS2MaterialNode._Emissive_Tex , componentType: ComponentType.Int, compositionType: CompositionType.Texture2D,
+        semantic: UTS2MaterialNode._Emissive_Tex, componentType: ComponentType.Int, compositionType: CompositionType.Texture2D,
         stage: ShaderType.PixelShader, isSystem: false, updateInteval: ShaderVariableUpdateInterval.EveryTime,
         initialValue: [12, textures[materialPropertiesArray[2][12]]], min: 0, max: Number.MAX_SAFE_INTEGER,
       },

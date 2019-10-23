@@ -213,7 +213,7 @@ ${this.pointSprite}
         return clamp((1.0 - factor), 0.0, 1.0);
     }
 
-    float shade_mask(float shadeGrade, float shadeStep, float shadeFeather){
+    float shade_mask(float shadeGrade, float shadeStep, float shadeFeather) {
          return clamp(
                     (
                         1.0
@@ -228,9 +228,200 @@ ${this.pointSprite}
                 );
     }
 
+    vec3 unpack_scale_normal(vec4 packednormal, float bumpScale) {
+        vec3 normal;
+        normal.xy = (packednormal.wy * 2.0 - 1.0);
+        normal.xy *= bumpScale;
+        normal.z = sqrt(1.0 - (dot(normal.xy, normal.xy)));
+
+        return normal;
+    }
+
+    vec3 calculate_world_normal_tex(
+            float materialSID
+            ,vec4 normalMapTex
+    ) {
+
+        vec3 normal_inWorld = normalize(v_normal_inWorld);
+        vec4 iblParameter = get_iblParameter(materialSID, 0);
+        float rot = iblParameter.w + 3.1415;
+        mat3 rotEnvMatrix = mat3(cos(rot), 0.0, -sin(rot), 0.0, 1.0, 0.0, sin(rot), 0.0, cos(rot));
+        vec3 normal_forEnv = rotEnvMatrix * normal_inWorld;
+
+        if (abs(length(v_tangent_inWorld)) > 0.01) {
+            vec3 normal = normalMapTex.xyz * 2.0 - 1.0;
+            vec3 tangent_inWorld = normalize(v_tangent_inWorld);
+            vec3 binormal_inWorld = normalize(v_binormal_inWorld);
+            normal_inWorld = normalize(normal_inWorld);
+
+            mat3 tbnMat_tangent_to_world = mat3(
+                tangent_inWorld.x, tangent_inWorld.y, tangent_inWorld.z,
+                binormal_inWorld.x, binormal_inWorld.y, binormal_inWorld.z,
+                normal_inWorld.x, normal_inWorld.y, normal_inWorld.z
+            );
+
+            normal = normalize(tbnMat_tangent_to_world * normal);
+            normal_inWorld = normal;
+        }
+
+        return normal_inWorld;
+    }
+
+    // ----------------------------------------------------------------------------------------------------
+    // Rim Light
+    vec3 calculate_rimlight(
+            float materialSID
+            ,vec3 lightColor
+            ,vec3 normal_inWorld
+            ,vec3 viewDirection
+            ,float _halfLambert
+    ) {
+
+        vec4 rimLightMask = ${_texture}(u_Set_RimLightMask, v_texcoord);
+        vec4 rimLightColor = get_RimLightColor(materialSID, 0);
+        float rimLightInsideRatio = get_RimLight_InsideMask(materialSID, 0);
+
+        bool useNormalMap               = (0.0 < get_Is_NormalMapToRimLight(materialSID,    0));
+        bool disableFeather             = (0.0 < get_RimLight_FeatherOff(materialSID,       0));
+        bool isLightColorContribute     = (0.0 < get_Is_LightColor_RimLight(materialSID,    0));
+        bool isLightColorContributeOnAP = (0.0 < get_Is_LightColor_Ap_RimLight(materialSID, 0));
+        bool enableAntipodeanRimLight   = (0.0 < get_Add_Antipodean_RimLight(materialSID,   0));
+        bool disableFeatherOnAntipodean = (0.0 < get_Ap_RimLight_FeatherOff(materialSID,    0));
+
+        vec3 res = rimLightColor.rgb;
+
+        if (isLightColorContribute) {
+            res *= lightColor;
+        }
+
+        float rimArea = 0.0;
+        if (useNormalMap) {
+            rimArea = (1.0 - dot(normal_inWorld, viewDirection));
+        } else {
+            rimArea = (1.0 - dot(v_normal_inWorld, viewDirection));
+        }
+        float rimPower = pow(rimArea, float(exp2(mix(3.0, 0.0, get_RimLight_Power(materialSID, 0)))));
+
+        // apply inside mask
+        if (disableFeather) {
+            res *= step(rimLightInsideRatio, rimPower);
+        } else {
+            res *= (0.0 + ( (rimPower - rimLightInsideRatio) * (1.0 - 0.0) ) / (1.0 - rimLightInsideRatio));
+        }
+
+        // light direction
+        float _VertHalfLambert_var = 0.5 * _halfLambert + 0.5;
+        if (0.0 < get_LightDirection_MaskOn(materialSID, 0)) {
+            res -= res * ((1.0 - _VertHalfLambert_var) + get_Tweak_LightDirection_MaskLevel(materialSID, 0));
+        }
+
+        // antipodean, if active, the rimlight effect appear in opposite to light direction.
+        float antipodeanRimPower = pow(rimArea, float(exp2(mix(3.0, 0.0, get_Ap_RimLight_Power(materialSID, 0)))));
+        vec4 antipodeanRimColor = get_Ap_RimLightColor(materialSID, 0);
+
+        if (enableAntipodeanRimLight) {
+            
+            if (isLightColorContributeOnAP) {
+                antipodeanRimColor.rgb *= lightColor;
+            }
+
+            float antipodeanPower = _VertHalfLambert_var + get_Tweak_LightDirection_MaskLevel(materialSID, 0);
+            if (disableFeatherOnAntipodean) {
+                antipodeanPower += step(rimLightInsideRatio, antipodeanRimPower);
+            } else {
+                antipodeanPower += (0.0 + ( (antipodeanRimPower - rimLightInsideRatio) * (1.0 - 0.0) ) / (1.0 - rimLightInsideRatio));
+            }
+
+            res += (antipodeanRimColor.rgb * antipodeanPower);
+        }
+
+        float rimMaskFactor = rimLightMask.g + get_Tweak_RimLightMaskLevel(materialSID, 0);
+        res *= rimMaskFactor;
+        res.r = clamp(res.r, 0.0, 1.0);
+        res.g = clamp(res.g, 0.0, 1.0);
+        res.b = clamp(res.b, 0.0, 1.0);
+
+        return res;
+
+    }
+
+    vec3 calculate_matcap(
+        float materialSID
+        ,vec3 normal_inWorld 
+        ,vec3 viewDirection
+        ,vec3 lightColor
+        ,vec4 highColor
+        ,float shadeMask
+    ) {
+
+        vec3 res = vec3(0);
+
+        // vec3 unpackedNormal = unpack_scale_normal(${_texture}(u_NormalMapForMatCap, v_texcoord), get_BumpScaleMatcap(materialSID, 0));
+        // FIXME: texture cant fetch
+        // vec3 unpackedNormal = ${_texture}(u_NormalMapForMatCap, v_texcoord).rgb;
+        vec3 unpackedNormal = ${_texture}(u_Set_MatcapMask, v_texcoord).rgb;
+
+        bool useNormalMap   = (0.0 < get_Is_NormalMapForMatCap(materialSID, 0));
+        bool disableFeather = (0.0 < get_RimLight_FeatherOff(materialSID,   0));
+        bool lightColorContribution = (0.0 < get_Is_LightColor_MatCap(materialSID,   0));
+        bool isAdditiveOrMultiply = (0.0 < get_Is_BlendAddToMatCap(materialSID, 0));
+        bool useMatCapOnShadow = (0.0 < get_Is_UseTweakMatCapOnShadow(materialSID, 0));
+
+        float tweakMatCapOnShadow = get_TweakMatCapOnShadow(materialSID, 0);
+
+        vec3 x = normalize( vec3( viewDirection.z, 0.0, - viewDirection.x ) );
+        vec3 y = cross( viewDirection, x );
+        vec2 uv = vec2( dot( x, normal_inWorld ), dot( y, normal_inWorld ) ) * 0.495 + 0.5; // 0.495 to remove artifacts caused by undersized matcap disks
+
+        vec3 matcapColor = ${_texture}(u_MatCap_Sampler, uv).rgb;
+        matcapColor *= get_MatCapColor(materialSID, 0).rgb;
+
+        if( lightColorContribution ) {
+            matcapColor *= lightColor;
+        }
+
+        if ( useMatCapOnShadow ){
+            vec3 tmp3 = vec3(0.0, 0.0, 0.0);
+
+            if( !isAdditiveOrMultiply )
+            {
+                tmp3 = highColor.rgb * (shadeMask * (1.0 - tweakMatCapOnShadow));
+            }
+            float tmp2 = (1.0 - shadeMask) + (shadeMask * tweakMatCapOnShadow);
+            vec3 tmp = matcapColor * tmp2 + tmp3;
+
+            res = tmp;
+
+        } else {
+            res = matcapColor;
+        }
+
+        vec3 matcapMask = ${_texture}(u_Set_MatcapMask, v_texcoord).rgb;
+        float matcapTweak = mix(
+                                matcapMask.g,
+                                (1.0 - matcapMask.g),
+                                get_Inverse_MatcapMask(materialSID, 0)
+                            );
+        matcapTweak += get_Tweak_MatcapMaskLevel(materialSID, 0);
+        matcapTweak = clamp((matcapTweak), 0.0, 1.0);
+
+        if( useMatCapOnShadow ) {
+            matcapTweak *= (1.0 - shadeMask + shadeMask * tweakMatCapOnShadow);
+        }
+
+        matcapColor *= matcapTweak;
+
+        res = matcapColor.rgb;
+
+
+
+        return res;
+    }
+
     // -----------------------------------------------------------------------
     void main(){
         ${this.mainPrerequisites}
+        float cameraSID = u_currentComponentSIDs[${WellKnownComponentTIDs.CameraComponentTID}];
 
         rt0 = vec4(0.0, 0.0, 0.0, 1.0);
 
@@ -338,9 +529,25 @@ ${this.pointSprite}
         // -------------------------------------------------------------------
         // Clipping
         // -------------------------------------------------------------------
-        // TODO
-        // vec4 clippingMask = ${_texture}(u_ClippingMask, v_texcoord);
+        vec4 clippingMask = ${_texture}(u_ClippingMask, v_texcoord);
 
+        if( 0.0 < get_IsBaseMapAlphaAsClippingMask(materialSID, 0)) {
+            alpha = baseTexColor.a;
+        } else {
+            alpha = clippingMask.r;
+        }
+
+        if( 0.0 < get_Inverse_Clipping(materialSID, 0) ) {
+            alpha = 1.0 - alpha;
+        }
+
+        if( (clamp(alpha + get_Clipping_Level(materialSID, 0), 0.0, 1.0) - 0.5) < 0.01 ){
+            discard;
+        }
+
+        if (alpha < 0.01) {
+            discard;
+        }
 
         // TODO: apply fog
         // -------------------------------------------------------------------
@@ -416,12 +623,17 @@ ${this.pointSprite}
         _halfDirection = _halfDirection / float(_lightNumber);
         vec3 reflection = rotEnvMatrix * reflect(-viewDirection, normal_inWorld);
 
-        // vec3 F = fresnel(F0, NV);
-        // vec3 ibl = IBLContribution(materialSID, normal_forEnv, NV, reflection, albedo, F0, userRoughness, F);
-        // float occlusion = ${_texture}(u_occlusionTexture, v_texcoord).r;
+        /*
+        vec3 F = fresnel(F0, NV);
+        vec3 ibl = IBLContribution(materialSID, normal_forEnv, NV, reflection, albedo, F0, userRoughness, F);
+        float occlusion = ${_texture}(u_occlusionTexture, v_texcoord).r;
 
         // Occlution to Indirect Lights
         // rt0.xyz += ibl * occlusion;
+
+        // Indirect lights luminance
+        _halfLambert += ((ibl.x * 0.3) + (ibl.y * 0.59) + (ibl.z * 0.11)) * occlusion;
+        */
 
         // -------------------------------------------------------------------
         // BaseColorFactor & apply shading grade
@@ -490,86 +702,29 @@ ${this.pointSprite}
             col.rgb += highColor.rgb;
         }
 
-        // ----------------------------------------------------------------------------------------------------
-        // Rim Light
-        vec4 rimLightMask = ${_texture}(u_Set_RimLightMask, v_texcoord);
-        vec4 rimLightColor = get_RimLightColor(materialSID, 0);
-        float rimLightInsideRatio = get_RimLight_InsideMask(materialSID, 0);
-        if (0.0 < get_Is_LightColor_RimLight(materialSID, 0)) {
-            rimLightColor.rgb *= lightColor;
-        }
+        // --------------------------------------------------------------------------------------------------
+        // rimlight
+        col.rgb += calculate_rimlight(materialSID, lightColor, normal_inWorld, viewDirection, _halfLambert);
 
-        float rimArea = 0.0;
-        if (0.0 < get_Is_NormalMapToRimLight(materialSID, 0)) {
-            rimArea = (1.0 - dot(normal_inWorld, viewDirection));
-        } else {
-            rimArea = (1.0 - dot(v_normal_inWorld, viewDirection));
-        }
-
-        float rimPower = pow(rimArea, float(exp2(mix(3.0, 0.0, get_RimLight_Power(materialSID, 0)))));
-
-        float rimInsideMask = 0.0;
-        if (0.0 < get_RimLight_FeatherOff(materialSID, 0)) {
-            rimInsideMask = step(rimLightInsideRatio, rimPower);
-        } else {
-            rimInsideMask = 0.0 + ( (rimPower - rimLightInsideRatio) * (1.0 - 0.0) ) / (1.0 - rimLightInsideRatio);
-        }
-
-        float _VertHalfLambert_var = 0.5 * _halfLambert + 0.5;
-
-        vec3 lightDirMaskOnRim = rimLightColor.rgb * rimInsideMask;
-        if (0.0 < get_LightDirection_MaskOn(materialSID, 0)) {
-            lightDirMaskOnRim -= rimLightColor.rgb * ((1.0 - _VertHalfLambert_var) + get_Tweak_LightDirection_MaskLevel(materialSID, 0));
-        }
-
-        float antipodeanRimPower = pow(rimArea, float(exp2(mix(3.0, 0.0, get_Ap_RimLight_Power(materialSID, 0)))));
-        vec4 antipodeanRimColor = get_Ap_RimLightColor(materialSID, 0);
-        float rimFactor = rimLightMask.g + get_Tweak_RimLightMaskLevel(materialSID, 0);
-
-        bool isLightColorContibuteOnRimLight = (0.0 < get_Is_LightColor_Ap_RimLight(materialSID, 0));
-        bool enableAntipodeanRimLight = (0.0 < get_Add_Antipodean_RimLight(materialSID, 0));
-        bool disableFeatherOnAntipodean = (0.0 < get_Ap_RimLight_FeatherOff(materialSID, 0));
-
-        vec3 rimCol = lightDirMaskOnRim;
-        if (enableAntipodeanRimLight) {
-            
-            if (isLightColorContibuteOnRimLight) {
-                antipodeanRimColor.rgb *= lightColor;
+        // --------------------------------------------------------------------------------------------------
+        // matcap
+        bool isMatcapEnabled = (0.0 < get_MatCap(materialSID, 0));
+        bool isMatcapBlendModeAdd = (0.0 < get_Is_BlendAddToMatCap(materialSID, 0));
+        bool isMatcapBlendModeMultiply = (!isMatcapBlendModeAdd);
+        if( isMatcapEnabled )
+        {
+            if( isMatcapBlendModeAdd )
+            {
+                col.rgb += calculate_matcap(materialSID, normal_inWorld, viewDirection, lightColor, highColor, shadeMask1st);
             }
-
-            float antipodeanPower = _VertHalfLambert_var + get_Tweak_LightDirection_MaskLevel(materialSID, 0);
-            if (disableFeatherOnAntipodean) {
-                antipodeanPower += step(rimLightInsideRatio, antipodeanRimPower);
-            } else {
-                antipodeanPower += (0.0 + ( (antipodeanRimPower - rimLightInsideRatio) * (1.0 - 0.0) ) / (1.0 - rimLightInsideRatio));
+            else // multiply
+            {
+                col.rgb *= calculate_matcap(materialSID, normal_inWorld, viewDirection, lightColor, highColor, shadeMask1st);
             }
-
-            rimCol += (antipodeanRimColor.rgb * antipodeanPower);
         }
 
-        col.rgb += rimCol;
-
-
-        /*
-                // float4 rimLightMask = tex2D(_Set_RimLightMask,TRANSFORM_TEX(Set_UV0, _Set_RimLightMask));
-                // float3 rimLightColor = mix( _RimLightColor.rgb, (_RimLightColor.rgb*Set_LightColor), _Is_LightColor_RimLight );
-                // float rimArea = (1.0 - dot(mix( i.normalDir, normalDirection, _Is_NormalMapToRimLight ),viewDirection));
-                // float rimPower = pow(rimArea,exp2(mix(3,0,_RimLight_Power)));
-                // float rimInsideMask = saturate(mix( (0.0 + ( (rimPower - _RimLight_InsideMask) * (1.0 - 0.0) ) / (1.0 - _RimLight_InsideMask)), step(_RimLight_InsideMask,rimPower), _RimLight_FeatherOff ));
-                // float _VertHalfLambert_var = 0.5*dot(i.normalDir,lightDirection)+0.5;
-                // float3 lightDirMaskOnRim = mix( (rimLightColor*rimInsideMask), (rimLightColor*saturate((rimInsideMask-((1.0 - _VertHalfLambert_var)+_Tweak_LightDirection_MaskLevel)))), _LightDirection_MaskOn );
-                // float _ApRimLightPower_var = pow(rimArea,exp2(mix(3,0,_Ap_RimLight_Power)));
-                // float3 Set_RimLight = (saturate((rimLightMask.g+_Tweak_RimLightMaskLevel))*mix( lightDirMaskOnRim, (lightDirMaskOnRim+(mix( _Ap_RimLightColor.rgb, (_Ap_RimLightColor.rgb*Set_LightColor), _Is_LightColor_Ap_RimLight )*saturate((mix( (0.0 + ( (_ApRimLightPower_var - _RimLight_InsideMask) * (1.0 - 0.0) ) / (1.0 - _RimLight_InsideMask)), step(_RimLight_InsideMask,_ApRimLightPower_var), _Ap_RimLight_FeatherOff )-(saturate(_VertHalfLambert_var)+_Tweak_LightDirection_MaskLevel))))), _Add_Antipodean_RimLight ));
-                //Composition: HighColor and RimLight as _RimLight_var
-                float3 _RimLight_var = mix( Set_HighColor, (Set_HighColor+Set_RimLight), _RimLight );
-        */
-
+        // --------------------------------------------------------------------------------------------------
         // baseColor *= srgbToLinear(textureColor.rgb);
-        alpha *= baseTexColor.a;
-
-        if (alpha < 0.01) {
-            discard;
-        }
 
         // Wireframe
         float threshold = 0.001;
@@ -594,151 +749,11 @@ ${this.pointSprite}
             }
         }
 
-        // rt0.rgb = vec3(0.5);
-        // rt0.rgb = shade2nd;
         rt0.rgb = col.rgb;
+        rt0.a = alpha;
 
         ${_def_fragColor}
 
-
-        /*
-                float3 Set_LightColor = lightColor.rgb;
-                float3 Set_BaseColor = mix( (_BaseColor.rgb*_MainTex_var.rgb), ((_BaseColor.rgb*_MainTex_var.rgb)*Set_LightColor), _Is_LightColor_Base );
-                //v.2.0.5
-                float4 _1st_ShadeMap_var = mix(tex2D(_1st_ShadeMap,TRANSFORM_TEX(Set_UV0, _1st_ShadeMap)),_MainTex_var,_Use_BaseAs1st);
-                float3 Set_1st_ShadeColor = mix( (_1st_ShadeColor.rgb*_1st_ShadeMap_var.rgb), ((_1st_ShadeColor.rgb*_1st_ShadeMap_var.rgb)*Set_LightColor), _Is_LightColor_1st_Shade );
-                //v.2.0.5
-                float4 _2nd_ShadeMap_var = mix(tex2D(_2nd_ShadeMap,TRANSFORM_TEX(Set_UV0, _2nd_ShadeMap)),_1st_ShadeMap_var,_Use_1stAs2nd);
-                float3 Set_2nd_ShadeColor = mix( (_2nd_ShadeColor.rgb*_2nd_ShadeMap_var.rgb), ((_2nd_ShadeColor.rgb*_2nd_ShadeMap_var.rgb)*Set_LightColor), _Is_LightColor_2nd_Shade );
-                float _HalfLambert_var = 0.5*dot(mix( i.normalDir, normalDirection, _Is_NormalMapToBase ),lightDirection)+0.5;
-                float4 _Set_2nd_ShadePosition_var = tex2D(_Set_2nd_ShadePosition,TRANSFORM_TEX(Set_UV0, _Set_2nd_ShadePosition));
-                float4 _Set_1st_ShadePosition_var = tex2D(_Set_1st_ShadePosition,TRANSFORM_TEX(Set_UV0, _Set_1st_ShadePosition));
-                //v.2.0.6
-                //Minmimum value is same as the Minimum Feather's value with the Minimum Step's value as threshold.
-                float _SystemShadowsLevel_var = (attenuation*0.5)+0.5+_Tweak_SystemShadowsLevel > 0.001 ? (attenuation*0.5)+0.5+_Tweak_SystemShadowsLevel : 0.0001;
-                float Set_FinalShadowMask = saturate((1.0 + ( (mix( _HalfLambert_var, _HalfLambert_var*saturate(_SystemShadowsLevel_var), _Set_SystemShadowsToBase ) - (_BaseColor_Step-_BaseShade_Feather)) * ((1.0 - _Set_1st_ShadePosition_var.rgb).r - 1.0) ) / (_BaseColor_Step - (_BaseColor_Step-_BaseShade_Feather))));
-                //
-                //Composition: 3 Basic Colors as Set_FinalBaseColor
-                float3 Set_FinalBaseColor = mix(Set_BaseColor,mix(Set_1st_ShadeColor,Set_2nd_ShadeColor,saturate((1.0 + ( (_HalfLambert_var - (_ShadeColor_Step-_1st2nd_Shades_Feather)) * ((1.0 - _Set_2nd_ShadePosition_var.rgb).r - 1.0) ) / (_ShadeColor_Step - (_ShadeColor_Step-_1st2nd_Shades_Feather))))),Set_FinalShadowMask); // Final Color
-                float4 _Set_HighColorMask_var = tex2D(_Set_HighColorMask,TRANSFORM_TEX(Set_UV0, _Set_HighColorMask));
-                float _Specular_var = 0.5*dot(halfDirection,mix( i.normalDir, normalDirection, _Is_NormalMapToHighColor ))+0.5; //  Specular                
-                float _TweakHighColorMask_var = (saturate((_Set_HighColorMask_var.g+_Tweak_HighColorMaskLevel))*mix( (1.0 - step(_Specular_var,(1.0 - pow(_HighColor_Power,5)))), pow(_Specular_var,exp2(mix(11,1,_HighColor_Power))), _Is_SpecularToHighColor ));
-                float4 highTexColor = tex2D(_HighColor_Tex,TRANSFORM_TEX(Set_UV0, _HighColor_Tex));
-                float3 highColor = (mix( (highTexColor.rgb*_HighColor.rgb), ((highTexColor.rgb*_HighColor.rgb)*Set_LightColor), _Is_LightColor_HighColor )*_TweakHighColorMask_var);
-                //Composition: 3 Basic Colors and HighColor as Set_HighColor
-                float3 Set_HighColor = (mix( saturate((Set_FinalBaseColor-_TweakHighColorMask_var)), Set_FinalBaseColor, mix(_Is_BlendAddToHiColor,1.0,_Is_SpecularToHighColor) )+mix( highColor, (highColor*((1.0 - Set_FinalShadowMask)+(Set_FinalShadowMask*_TweakHighColorOnShadow))), _Is_UseTweakHighColorOnShadow ));
-                float4 rimLightMask = tex2D(_Set_RimLightMask,TRANSFORM_TEX(Set_UV0, _Set_RimLightMask));
-                float3 rimLightColor = mix( _RimLightColor.rgb, (_RimLightColor.rgb*Set_LightColor), _Is_LightColor_RimLight );
-                float rimArea = (1.0 - dot(mix( i.normalDir, normalDirection, _Is_NormalMapToRimLight ),viewDirection));
-                float rimPower = pow(rimArea,exp2(mix(3,0,_RimLight_Power)));
-                float rimInsideMask = saturate(mix( (0.0 + ( (rimPower - _RimLight_InsideMask) * (1.0 - 0.0) ) / (1.0 - _RimLight_InsideMask)), step(_RimLight_InsideMask,rimPower), _RimLight_FeatherOff ));
-                float _VertHalfLambert_var = 0.5*dot(i.normalDir,lightDirection)+0.5;
-                float3 lightDirMaskOnRim = mix( (rimLightColor*rimInsideMask), (rimLightColor*saturate((rimInsideMask-((1.0 - _VertHalfLambert_var)+_Tweak_LightDirection_MaskLevel)))), _LightDirection_MaskOn );
-                float _ApRimLightPower_var = pow(rimArea,exp2(mix(3,0,_Ap_RimLight_Power)));
-                float3 Set_RimLight = (saturate((rimLightMask.g+_Tweak_RimLightMaskLevel))*mix( lightDirMaskOnRim, (lightDirMaskOnRim+(mix( _Ap_RimLightColor.rgb, (_Ap_RimLightColor.rgb*Set_LightColor), _Is_LightColor_Ap_RimLight )*saturate((mix( (0.0 + ( (_ApRimLightPower_var - _RimLight_InsideMask) * (1.0 - 0.0) ) / (1.0 - _RimLight_InsideMask)), step(_RimLight_InsideMask,_ApRimLightPower_var), _Ap_RimLight_FeatherOff )-(saturate(_VertHalfLambert_var)+_Tweak_LightDirection_MaskLevel))))), _Add_Antipodean_RimLight ));
-                //Composition: HighColor and RimLight as _RimLight_var
-                float3 _RimLight_var = mix( Set_HighColor, (Set_HighColor+Set_RimLight), _RimLight );
-                //Matcap
-                //v.2.0.6 : CameraRolling Stabilizer
-                //鏡スクリプト判定：_sign_Mirror = -1 なら、鏡の中と判定.
-                //v.2.0.7
-                fixed _sign_Mirror = i.mirrorFlag;
-                //
-                float3 _Camera_Right = UNITY_MATRIX_V[0].xyz;
-                float3 _Camera_Front = UNITY_MATRIX_V[2].xyz;
-                float3 _Up_Unit = float3(0, 1, 0);
-                float3 _Right_Axis = cross(_Camera_Front, _Up_Unit);
-                //鏡の中なら反転.
-                if(_sign_Mirror < 0){
-                    _Right_Axis = -1 * _Right_Axis;
-                    _Rotate_MatCapUV = -1 * _Rotate_MatCapUV;
-                }else{
-                    _Right_Axis = _Right_Axis;
-                }
-                float _Camera_Right_Magnitude = sqrt(_Camera_Right.x*_Camera_Right.x + _Camera_Right.y*_Camera_Right.y + _Camera_Right.z*_Camera_Right.z);
-                float _Right_Axis_Magnitude = sqrt(_Right_Axis.x*_Right_Axis.x + _Right_Axis.y*_Right_Axis.y + _Right_Axis.z*_Right_Axis.z);
-                float _Camera_Roll_Cos = dot(_Right_Axis, _Camera_Right) / (_Right_Axis_Magnitude * _Camera_Right_Magnitude);
-                float _Camera_Roll = acos(clamp(_Camera_Roll_Cos, -1, 1));
-                fixed _Camera_Dir = _Camera_Right.y < 0 ? -1 : 1;
-                float _Rot_MatCapUV_var_ang = (_Rotate_MatCapUV*3.141592654) - _Camera_Dir*_Camera_Roll*_CameraRolling_Stabilizer;
-                //v.2.0.7
-                float2 _Rot_MatCapNmUV_var = RotateUV(Set_UV0, (_Rotate_NormalMapForMatCapUV*3.141592654), float2(0.5, 0.5), 1.0);
-                //V.2.0.6
-                float3 _NormalMapForMatCap_var = UnpackScaleNormal(tex2D(_NormalMapForMatCap,TRANSFORM_TEX(_Rot_MatCapNmUV_var, _NormalMapForMatCap)),_BumpScaleMatcap);
-                //v.2.0.5: MatCap with camera skew correction
-                float3 viewNormal = (mul(UNITY_MATRIX_V, float4(mix( i.normalDir, mul( _NormalMapForMatCap_var.rgb, tangentTransform ).rgb, _Is_NormalMapForMatCap ),0))).rgb;
-                float3 NormalBlend_MatcapUV_Detail = viewNormal.rgb * float3(-1,-1,1);
-                float3 NormalBlend_MatcapUV_Base = (mul( UNITY_MATRIX_V, float4(viewDirection,0) ).rgb*float3(-1,-1,1)) + float3(0,0,1);
-                float3 noSknewViewNormal = NormalBlend_MatcapUV_Base*dot(NormalBlend_MatcapUV_Base, NormalBlend_MatcapUV_Detail)/NormalBlend_MatcapUV_Base.b - NormalBlend_MatcapUV_Detail;                
-                float2 _ViewNormalAsMatCapUV = (mix(noSknewViewNormal,viewNormal,_Is_Ortho).rg*0.5)+0.5;
-                //v.2.0.7
-                float2 _Rot_MatCapUV_var = RotateUV((0.0 + ((_ViewNormalAsMatCapUV - (0.0+_Tweak_MatCapUV)) * (1.0 - 0.0) ) / ((1.0-_Tweak_MatCapUV) - (0.0+_Tweak_MatCapUV))), _Rot_MatCapUV_var_ang, float2(0.5, 0.5), 1.0);
-                //鏡の中ならUV左右反転.
-                if(_sign_Mirror < 0){
-                    _Rot_MatCapUV_var.x = 1-_Rot_MatCapUV_var.x;
-                }else{
-                    _Rot_MatCapUV_var = _Rot_MatCapUV_var;
-                }
-                //v.2.0.6 : LOD of Matcap
-                float4 _MatCap_Sampler_var = tex2Dlod(_MatCap_Sampler,float4(TRANSFORM_TEX(_Rot_MatCapUV_var, _MatCap_Sampler),0.0,_BlurLevelMatcap));
-                //
-                //MatcapMask
-                float4 _Set_MatcapMask_var = tex2D(_Set_MatcapMask,TRANSFORM_TEX(Set_UV0, _Set_MatcapMask));
-                float _Tweak_MatcapMaskLevel_var = saturate(mix(_Set_MatcapMask_var.g, (1.0 - _Set_MatcapMask_var.g), _Inverse_MatcapMask) + _Tweak_MatcapMaskLevel);
-                //
-                float3 _Is_LightColor_MatCap_var = mix( (_MatCap_Sampler_var.rgb*_MatCapColor.rgb), ((_MatCap_Sampler_var.rgb*_MatCapColor.rgb)*Set_LightColor), _Is_LightColor_MatCap );
-                //v.2.0.6 : ShadowMask on Matcap in Blend mode : multiply
-                float3 Set_MatCap = mix( _Is_LightColor_MatCap_var, (_Is_LightColor_MatCap_var*((1.0 - Set_FinalShadowMask)+(Set_FinalShadowMask*_TweakMatCapOnShadow)) + mix(Set_HighColor*Set_FinalShadowMask*(1.0-_TweakMatCapOnShadow), float3(0.0, 0.0, 0.0), _Is_BlendAddToMatCap)), _Is_UseTweakMatCapOnShadow );
-                //
-                //Composition: RimLight and MatCap as finalColor
-                //Broke down finalColor composition
-                float3 matCapColorOnAddMode = _RimLight_var+Set_MatCap*_Tweak_MatcapMaskLevel_var;
-                float _Tweak_MatcapMaskLevel_var_MultiplyMode = _Tweak_MatcapMaskLevel_var * mix (1.0, (1.0 - (Set_FinalShadowMask)*(1.0 - _TweakMatCapOnShadow)), _Is_UseTweakMatCapOnShadow);
-                float3 matCapColorOnMultiplyMode = Set_HighColor*(1-_Tweak_MatcapMaskLevel_var_MultiplyMode) + Set_HighColor*Set_MatCap*_Tweak_MatcapMaskLevel_var_MultiplyMode + mix(float3(0,0,0),Set_RimLight,_RimLight);
-                float3 matCapColorFinal = mix(matCapColorOnMultiplyMode, matCapColorOnAddMode, _Is_BlendAddToMatCap);
-                float3 finalColor = mix(_RimLight_var, matCapColorFinal, _MatCap);// Final Composition before Emissive
-                //
-                //v.2.0.6: GI_Intensity with Intensity Multiplier Filter
-                float3 envLightColor = DecodeLightProbe(normalDirection) < float3(1,1,1) ? DecodeLightProbe(normalDirection) : float3(1,1,1);
-                float envLightIntensity = 0.299*envLightColor.r + 0.587*envLightColor.g + 0.114*envLightColor.b <1 ? (0.299*envLightColor.r + 0.587*envLightColor.g + 0.114*envLightColor.b) : 1;
-//v.2.0.7
-#ifdef _EMISSIVE_SIMPLE
-                float4 _Emissive_Tex_var = tex2D(_Emissive_Tex,TRANSFORM_TEX(Set_UV0, _Emissive_Tex));
-                float emissiveMask = _Emissive_Tex_var.a;
-                emissive = _Emissive_Tex_var.rgb * _Emissive_Color.rgb * emissiveMask;
-#elif _EMISSIVE_ANIMATION
-                //v.2.0.7 Calculation View Coord UV for Scroll 
-                float3 viewNormal_Emissive = (mul(UNITY_MATRIX_V, float4(i.normalDir,0))).xyz;
-                float3 NormalBlend_Emissive_Detail = viewNormal_Emissive * float3(-1,-1,1);
-                float3 NormalBlend_Emissive_Base = (mul( UNITY_MATRIX_V, float4(viewDirection,0)).xyz*float3(-1,-1,1)) + float3(0,0,1);
-                float3 noSknewViewNormal_Emissive = NormalBlend_Emissive_Base*dot(NormalBlend_Emissive_Base, NormalBlend_Emissive_Detail)/NormalBlend_Emissive_Base.z - NormalBlend_Emissive_Detail;
-                float2 _ViewNormalAsEmissiveUV = noSknewViewNormal_Emissive.xy*0.5+0.5;
-                float2 _ViewCoord_UV = RotateUV(_ViewNormalAsEmissiveUV, -(_Camera_Dir*_Camera_Roll), float2(0.5,0.5), 1.0);
-                //鏡の中ならUV左右反転.
-                if(_sign_Mirror < 0){
-                    _ViewCoord_UV.x = 1-_ViewCoord_UV.x;
-                }else{
-                    _ViewCoord_UV = _ViewCoord_UV;
-                }
-                float2 emissive_uv = mix(i.uv0, _ViewCoord_UV, _Is_ViewCoord_Scroll);
-                //
-                float4 _time_var = _Time;
-                float _base_Speed_var = (_time_var.g*_Base_Speed);
-                float _Is_PingPong_Base_var = mix(_base_Speed_var, sin(_base_Speed_var), _Is_PingPong_Base );
-                float2 scrolledUV = emissive_uv - float2(_Scroll_EmissiveU, _Scroll_EmissiveV)*_Is_PingPong_Base_var;
-                float rotateVelocity = _Rotate_EmissiveUV*3.141592654;
-                float2 _rotate_EmissiveUV_var = RotateUV(scrolledUV, rotateVelocity, float2(0.5, 0.5), _Is_PingPong_Base_var);
-                float4 _Emissive_Tex_var = tex2D(_Emissive_Tex,TRANSFORM_TEX(Set_UV0, _Emissive_Tex));
-                float emissiveMask = _Emissive_Tex_var.a;
-                _Emissive_Tex_var = tex2D(_Emissive_Tex,TRANSFORM_TEX(_rotate_EmissiveUV_var, _Emissive_Tex));
-                float _colorShift_Speed_var = 1.0 - cos(_time_var.g*_ColorShift_Speed);
-                float viewShift_var = smoothstep( 0.0, 1.0, max(0,dot(normalDirection,viewDirection)));
-                float4 colorShift_Color = mix(_Emissive_Color, mix(_Emissive_Color, _ColorShift, _colorShift_Speed_var), _Is_ColorShift);
-                float4 viewShift_Color = mix(_ViewShift, colorShift_Color, viewShift_var);
-                float4 emissive_Color = mix(colorShift_Color, viewShift_Color, _Is_ViewShift);
-                emissive = emissive_Color.rgb * _Emissive_Tex_var.rgb * emissiveMask;
-
-        */
     }
     `;
 }
