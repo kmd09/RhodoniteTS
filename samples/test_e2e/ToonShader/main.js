@@ -9,7 +9,7 @@ const load = async function (time) {
   const gl = system.setProcessApproachAndCanvas(Rn.ProcessApproach.UniformWebGL1, document.getElementById('world'));
 
   const entityRepository = Rn.EntityRepository.getInstance();
-  const importer = Rn.ToonVRMImporter.getInstance();
+  const importer = Rn.VRMImporter.getInstance();
 
   // Camera
   const cameraEntity = entityRepository.createEntity([Rn.TransformComponent, Rn.SceneGraphComponent, Rn.CameraComponent, Rn.CameraControllerComponent])
@@ -50,6 +50,16 @@ const load = async function (time) {
   const cameraControllerComponent = cameraEntity.getComponent(Rn.CameraControllerComponent);
   cameraControllerComponent.controller.setTarget(rootGroups[0]);
 
+  // renderPass
+  const renderPass = new Rn.RenderPass();
+  renderPass.toClearColorBuffer = true;
+  renderPass.addEntities(rootGroups);
+
+  // expression
+  const expression = new Rn.Expression();
+  expression.addRenderPasses([renderPass]);
+
+
 
   Rn.CameraComponent.main = 0;
   let startTime = Date.now();
@@ -87,7 +97,7 @@ const load = async function (time) {
 
     }
 
-    system.process();
+    system.process([expression]);
     count++;
 
     requestAnimationFrame(draw);
