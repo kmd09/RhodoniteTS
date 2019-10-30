@@ -200,6 +200,9 @@ export default class VRMImporter {
     const dummyBlackTexture = new Texture();
     dummyBlackTexture.generate1x1TextureFrom("rgba(0, 0, 0, 1)");
     rnTextures.push(dummyBlackTexture);
+    const dummyBumpTexture = new Texture();
+    dummyBumpTexture.generate1x1TextureFrom("rgba(127, 127, 255, 255)");
+    rnTextures.push(dummyBumpTexture);
 
     return rnTextures;
   }
@@ -254,8 +257,9 @@ export default class VRMImporter {
   private __initializeMToonMaterialProperties(gltfModel: glTF2, texturesLength: number) {
     const materialProperties = gltfModel.extensions.VRM.materialProperties;
 
-    const dummyWhiteTextureNumber = texturesLength - 2;
-    const dummyBlackTextureNumber = texturesLength - 1;
+    const dummyWhiteTextureNumber = texturesLength - 3;
+    const dummyBlackTextureNumber = texturesLength - 2;
+    const dummyBumpTextureNumber = texturesLength - 1;
 
     for (let i = 0; i < materialProperties.length; i++) {
       const floatProperties = materialProperties[i].floatProperties;
@@ -325,8 +329,9 @@ export default class VRMImporter {
     const materialProperties = gltfModel.extensions.VRM.materialProperties;
     const materialPropertiesArray: any = [];
 
-    const dummyWhiteTextureNumber = texturesLength - 2;
-    const dummyBlackTextureNumber = texturesLength - 1;
+    const dummyWhiteTextureNumber = texturesLength - 3;
+    const dummyBlackTextureNumber = texturesLength - 2;
+    const dummyBumpTextureNumber = texturesLength - 1;
 
     for (let i = 0; i < materialProperties.length; i++) {
       // ----------------------------------------------------------------------------------
@@ -461,18 +466,18 @@ export default class VRMImporter {
       texturePropertiesArray[3] = (textureProperties["_ShadingGradeMap"] != null ? textureProperties["_ShadingGradeMap"] : dummyWhiteTextureNumber);
 
       texturePropertiesArray[4] = (textureProperties["_ClippingMask"] != null ? textureProperties["_ClippingMask"] : dummyWhiteTextureNumber);
-      texturePropertiesArray[5] = (textureProperties["_NormalMap"] != null ? textureProperties["_NormalMap"] : dummyBlackTextureNumber);
+      texturePropertiesArray[5] = (textureProperties["_NormalMap"] != null ? textureProperties["_NormalMap"] : dummyBumpTextureNumber);
       texturePropertiesArray[6] = (textureProperties["_HighColor_Tex"] != null ? textureProperties["_HighColor_Tex"] : dummyBlackTextureNumber);
 
       texturePropertiesArray[7] = (textureProperties["_Set_HighColorMask"] != null ? textureProperties["_Set_HighColorMask"] : dummyBlackTextureNumber);
       texturePropertiesArray[8] = (textureProperties["_Set_RimLightMask"] != null ? textureProperties["_Set_RimLightMask"] : dummyBlackTextureNumber);
       texturePropertiesArray[9] = (textureProperties["_MatCap_Sampler"] != null ? textureProperties["_MatCap_Sampler"] : dummyBlackTextureNumber);
-      texturePropertiesArray[10] = (textureProperties["_NormalMapForMatCap"] != null ? textureProperties["_NormalMapForMatCap"] : dummyBlackTextureNumber);
+      texturePropertiesArray[10] = (textureProperties["_NormalMapForMatCap"] != null ? textureProperties["_NormalMapForMatCap"] : dummyBumpTextureNumber);
       texturePropertiesArray[11] = (textureProperties["_Set_MatcapMask"] != null ? textureProperties["_Set_MatcapMask"] : dummyBlackTextureNumber);
       texturePropertiesArray[12] = (textureProperties["_Emissive_Tex"] != null ? textureProperties["_Emissive_Tex"] : dummyBlackTextureNumber);
       texturePropertiesArray[13] = (textureProperties["_Outline_Sampler"] != null ? textureProperties["_Outline_Sampler"] : dummyBlackTextureNumber);
       texturePropertiesArray[14] = (textureProperties["_OutlineTex"] != null ? textureProperties["_OutlineTex"] : dummyBlackTextureNumber);
-      texturePropertiesArray[15] = (textureProperties["_BakedNormal"] != null ? textureProperties["_BakedNormal"] : dummyBlackTextureNumber);
+      texturePropertiesArray[15] = (textureProperties["_BakedNormal"] != null ? textureProperties["_BakedNormal"] : dummyBumpTextureNumber);
 
       materialPropertiesArray.push([floatPropertiesArray, vectorPropertiesArray, texturePropertiesArray]);
       console.log("res " + floatPropertiesArray[3]);
