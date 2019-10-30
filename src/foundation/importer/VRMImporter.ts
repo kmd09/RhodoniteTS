@@ -337,7 +337,6 @@ export default class VRMImporter {
       // ----------------------------------------------------------------------------------
       const floatProperties = materialProperties[i].floatProperties;
       const floatPropertiesArray: number[] = [];
-      console.log("before " + floatProperties["_Use_BaseAs1st"]);
 
       floatPropertiesArray[0] = (floatProperties["_IsBaseMapAlphaAsClippingMask"] != null ? floatProperties["_IsBaseMapAlphaAsClippingMask"] : 0.0);
       floatPropertiesArray[1] = (floatProperties["_Inverse_Clipping"] != null ? floatProperties["_Inverse_Clipping"] : 0.0);
@@ -480,7 +479,6 @@ export default class VRMImporter {
       texturePropertiesArray[15] = (textureProperties["_BakedNormal"] != null ? textureProperties["_BakedNormal"] : dummyBumpTextureNumber);
 
       materialPropertiesArray.push([floatPropertiesArray, vectorPropertiesArray, texturePropertiesArray]);
-      console.log("res " + floatPropertiesArray[3]);
 
     }
 
