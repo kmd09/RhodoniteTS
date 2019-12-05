@@ -550,6 +550,14 @@ export default class Mesh {
     }
   }
 
+  isMeshForInstancingDrawing() {
+    if (this.__instanceOf != null || this.__instances.length > 0) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
   isOriginalMesh() {
     return !this.isInstanceMesh();
   }
