@@ -8,6 +8,7 @@ import Entity from "../core/Entity";
 import Matrix44 from "../math/Matrix44";
 import { ComponentTID, ComponentSID, EntityUID, Count, Size } from "../../types/CommonTypes";
 import ICameraController from "./ICameraController";
+import { MiscUtil } from "../misc/MiscUtil";
 
 declare var window: any;
 
@@ -78,9 +79,17 @@ export default class OrbitCameraController implements ICameraController {
   private _eventTargetDom?: any;
 
   private __resetDollyAndPositionFunc = this.__resetDollyAndPosition.bind(this);
+  private static __tmp_rotateM_Reset = MutableMatrix33.identity();
+  private static __tmp_rotateM_X = MutableMatrix33.identity();
+  private static __tmp_rotateM_Y = MutableMatrix33.identity();
+  private static __tmp_rotateM_Revert = MutableMatrix33.identity();
 
   constructor() {
     this.registerEventListeners();
+  }
+
+  get type() {
+    return this.constructor as typeof OrbitCameraController;
   }
 
   set zFarAdjustingFactorBasedOnAABB(value: number) {
@@ -492,15 +501,15 @@ export default class OrbitCameraController implements ICameraController {
         horizontalSign = -1;
       }
       horizontalAngleOfVectors *= horizontalSign;
-      let rotateM_Reset = MutableMatrix33.rotateY(MathUtil.degreeToRadian(horizontalAngleOfVectors));
-      let rotateM_X = MutableMatrix33.rotateX(MathUtil.degreeToRadian(this.__rot_y));
-      let rotateM_Y = MutableMatrix33.rotateY(MathUtil.degreeToRadian(this.__rot_x));
-      let rotateM_Revert = MutableMatrix33.rotateY(MathUtil.degreeToRadian(-horizontalAngleOfVectors));
+      MutableMatrix33.rotateYTo(MathUtil.degreeToRadian(horizontalAngleOfVectors), this.type.__tmp_rotateM_Reset);
+      MutableMatrix33.rotateXTo(MathUtil.degreeToRadian(this.__rot_y), this.type.__tmp_rotateM_X);
+      MutableMatrix33.rotateYTo(MathUtil.degreeToRadian(this.__rot_x), this.type.__tmp_rotateM_Y);
+      MutableMatrix33.rotateYTo(MathUtil.degreeToRadian(-horizontalAngleOfVectors), this.type.__tmp_rotateM_Revert);
       let rotateM = MutableMatrix33.multiply(
-        rotateM_Revert,
+        this.type.__tmp_rotateM_Revert,
         MutableMatrix33.multiply(
-          rotateM_Y,
-          MutableMatrix33.multiply(rotateM_X, rotateM_Reset)
+          this.type.__tmp_rotateM_Y,
+          MutableMatrix33.multiply(this.type.__tmp_rotateM_X, this.type.__tmp_rotateM_Reset)
         )
       );
 
@@ -517,7 +526,7 @@ export default class OrbitCameraController implements ICameraController {
       newEyeVec.add(this.__mouseTranslateVec);
       newCenterVec.add(this.__mouseTranslateVec);
 
-      let horizonResetVec = rotateM_Reset.multiplyVector(centerToEyeVec);
+      let horizonResetVec = this.type.__tmp_rotateM_Reset.multiplyVector(centerToEyeVec);
       this.__verticalAngleOfVectors = Vector3.angleOfVectors(
         horizonResetVec,
         new Vector3(0, 0, 1)
@@ -530,9 +539,9 @@ export default class OrbitCameraController implements ICameraController {
       }
       //this._verticalAngleOfVectors *= verticalSign;
     } else {
-      let rotateM_X = Matrix33.rotateX(MathUtil.degreeToRadian(this.__rot_y));
-      let rotateM_Y = Matrix33.rotateY(MathUtil.degreeToRadian(this.__rot_x));
-      let rotateM = Matrix33.multiply(rotateM_Y, rotateM_X);
+      MutableMatrix33.rotateXTo(MathUtil.degreeToRadian(this.__rot_y), this.type.__tmp_rotateM_X);
+      MutableMatrix33.rotateYTo(MathUtil.degreeToRadian(this.__rot_x), this.type.__tmp_rotateM_Y);
+      let rotateM = Matrix33.multiply(this.type.__tmp_rotateM_Y, this.type.__tmp_rotateM_X);
 
       newUpVec = rotateM.multiplyVector(this.__upVec);
       this.__newUpVec = newUpVec;

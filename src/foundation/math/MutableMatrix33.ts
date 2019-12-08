@@ -4,9 +4,11 @@ import {IMutableMatrix33} from "./IMatrix";
 import Matrix33 from "./Matrix33";
 import Vector3 from "./Vector3";
 import { CompositionType } from "../definitions/CompositionType";
-import { Index } from "../../types/CommonTypes";
+import { Index, Size } from "../../types/CommonTypes";
 
 export default class MutableMatrix33 extends Matrix33 implements IMutableMatrix33 {
+  private static __matrices: MutableMatrix33[] = [];
+  private static __index: Index = -1;
 
   constructor(m: null);
   constructor(m: Float32Array, isColumnMajor?:boolean, notCopyFloatArray?:boolean);
@@ -28,6 +30,14 @@ export default class MutableMatrix33 extends Matrix33 implements IMutableMatrix3
     super(m0, m1, m2, m3!, m4!, m5!, m6!, m7!, m8!, isColumnMajor);
 
 
+  }
+
+  static at(symbol: any) {
+    if (this.__matrices[symbol] == null) {
+      this.__matrices[symbol] = new this(new Float32Array(9), false, true);
+    }
+
+    return this.__matrices[symbol];
   }
 
   setComponents(
@@ -62,6 +72,17 @@ export default class MutableMatrix33 extends Matrix33 implements IMutableMatrix3
 
   static dummy() {
     return new MutableMatrix33(null);
+  }
+
+  /**
+   * Make this identity matrix（static method version）
+   */
+  static identity() {
+    return new MutableMatrix33(
+      1, 0, 0,
+      0, 1, 0,
+      0, 0, 1
+    );
   }
 
   identity() {
@@ -129,6 +150,24 @@ export default class MutableMatrix33 extends Matrix33 implements IMutableMatrix3
   }
 
   /**
+   * Create X oriented Rotation Matrix
+   */
+  static rotateXTo(radian:number, out: MutableMatrix33) {
+    var cos = Math.cos(radian);
+    var sin = Math.sin(radian);
+
+    out.v[0] = 1;
+    out.v[1] = 0;
+    out.v[2] = 0;
+    out.v[3] = 0;
+    out.v[4] = cos;
+    out.v[5] = sin;
+    out.v[6] = 0;
+    out.v[7] = -sin;
+    out.v[8] = cos;
+  }
+
+  /**
    * Create Y oriented Rotation Matrix
    */
   static rotateY(radian:number) {
@@ -139,6 +178,24 @@ export default class MutableMatrix33 extends Matrix33 implements IMutableMatrix3
       0, 1, 0,
       -sin, 0, cos
     );
+  }
+
+  /**
+   * Create Y oriented Rotation Matrix
+   */
+  static rotateYTo(radian:number, out: MutableMatrix33) {
+    var cos = Math.cos(radian);
+    var sin = Math.sin(radian);
+
+    out.v[0] = cos;
+    out.v[1] = 0;
+    out.v[2] = -sin;
+    out.v[3] = 0;
+    out.v[4] = 1;
+    out.v[5] = 0;
+    out.v[6] = sin;
+    out.v[7] = 0;
+    out.v[8] = cos;
   }
 
   /**

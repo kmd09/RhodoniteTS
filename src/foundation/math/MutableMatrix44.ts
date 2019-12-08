@@ -4,7 +4,7 @@ import Matrix33 from "./Matrix33";
 import Quaternion from "./Quaternion";
 import Vector3 from "./Vector3";
 import { CompositionType } from "../definitions/CompositionType";
-import { Index } from "../../types/CommonTypes";
+import { Index, Size } from "../../types/CommonTypes";
 
 const FloatArray = Float32Array;
 type FloatArray = Float32Array;
@@ -151,6 +151,32 @@ export default class MutableMatrix44 extends Matrix44 implements IMutableMatrix4
       -sin, 0, cos, 0,
       0, 0, 0, 1
     );
+  }
+
+  /**
+   * Create Y oriented Rotation Matrix
+   */
+  rotateYTo(radian:number, out: MutableMatrix44) {
+    var cos = Math.cos(radian);
+    var sin = Math.sin(radian);
+
+    out.v[0] = cos;
+    out.v[1] = 0;
+    out.v[2] = -sin;
+    out.v[3] = 0;
+    out.v[4] = 0;
+    out.v[5] = 1;
+    out.v[6] = 0;
+    out.v[7] = 0;
+    out.v[8] = sin;
+    out.v[9] = 0;
+    out.v[10] = cos;
+    out.v[11] = 0;
+    out.v[12] = 0;
+    out.v[13] = 0;
+    out.v[14] = 0;
+    out.v[15] = 1;
+
   }
 
     /**
