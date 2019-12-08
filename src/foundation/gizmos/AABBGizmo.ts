@@ -33,16 +33,17 @@ export default class AABBGizmo extends Gizmo {
 
     this.__topEntity = this.__entityRepository.createEntity([TransformComponent, SceneGraphComponent, MeshComponent, MeshRendererComponent]);
     const meshComponent = this.__topEntity.getMesh();
+    this.__topEntity.getSceneGraph().isVisible = false;
 
-    // if (AABBGizmo.__aabbMesh == null) {
+    if (AABBGizmo.__aabbMesh == null) {
       AABBGizmo.__aabbMesh = new Mesh();
       AABBGizmo.__aabbMesh.addPrimitive(AABBGizmo.generatePrimitive());
       meshComponent.setMesh(AABBGizmo.__aabbMesh);
-    // } else {
-    //   const mesh = new Mesh();
-    //   mesh.setOriginalMesh(AABBGizmo.__aabbMesh);
-    //   meshComponent.setMesh(mesh);
-    // }
+    } else {
+      const mesh = new Mesh();
+      mesh.setOriginalMesh(AABBGizmo.__aabbMesh);
+      meshComponent.setMesh(mesh);
+    }
 
     this.setGizmoTag();
   }

@@ -35,9 +35,10 @@ export default class SceneGraphComponent extends Component {
   private static _isAllUpdate = false;
   private __worldAABB = new AABB();
   private __isWorldAABBDirty = true;
+  private static __WorldMatrixZero = Matrix44.scale(new Vector3(0, 0, 0));
   private static readonly __originVector3 = Vector3.zero();
   private static returnVector3 = MutableVector3.zero();
-  public isVisible = true;
+  private __isVisible = true;
   private __animationComponent?: AnimationComponent;
   private __AABBGizmo = new AABBGizmo(this);
 
@@ -62,6 +63,15 @@ export default class SceneGraphComponent extends Component {
 
     this.submitToAllocation(this.maxNumberOfComponent);
 
+  }
+
+  get isVisible() {
+    return this.__isVisible;
+  }
+
+  set isVisible(flg: boolean) {
+    this.setWorldMatrixDirty();
+    this.__isVisible = flg;
   }
 
   set isGizmoVisible(flg: boolean) {
@@ -130,11 +140,15 @@ export default class SceneGraphComponent extends Component {
   }
 
   get worldMatrixInner() {
-   if (!this.__isWorldMatrixUpToDate) {
-      // this._worldMatrix.identity();
-    this._worldMatrix.copyComponents(this.calcWorldMatrixRecursively(false));//this.isJoint()));
-    this.__isWorldMatrixUpToDate = true;
-   }
+    if (!this.isVisible) {
+      this._worldMatrix.copyComponents(SceneGraphComponent.__WorldMatrixZero);//this.isJoint()));
+      this.__isWorldMatrixUpToDate = true;
+    }
+    if (!this.__isWorldMatrixUpToDate) {
+        // this._worldMatrix.identity();
+      this._worldMatrix.copyComponents(this.calcWorldMatrixRecursively(false));//this.isJoint()));
+      this.__isWorldMatrixUpToDate = true;
+    }
 
     return this._worldMatrix;
   }

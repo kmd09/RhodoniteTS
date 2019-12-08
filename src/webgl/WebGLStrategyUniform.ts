@@ -176,7 +176,6 @@ mat3 get_normalMatrix(float instanceId) {
       const primitive = meshComponent!.mesh.getPrimitiveAt(i);
       primitive.create3DAPIVertexData();
     }
-    meshComponent.mesh.updateVariationVBO();
 
   }
 
@@ -186,20 +185,24 @@ mat3 get_normalMatrix(float instanceId) {
       return;
     }
 
-    const primitiveNum = meshComponent!.mesh.getPrimitiveNumber();
+    const updated = meshComponent.mesh.updateVariationVBO();
 
-    if (meshComponent.mesh.weights.length > 0) {
+    if (updated) {
+      const primitiveNum = meshComponent!.mesh.getPrimitiveNumber();
+
+      if (meshComponent.mesh.weights.length > 0) {
+        for (let i = 0; i < primitiveNum; i++) {
+          const primitive = meshComponent!.mesh.getPrimitiveAt(i);
+          this.__webglResourceRepository.resendVertexBuffer(primitive, primitive.vertexHandles!.vboHandles);
+        }
+      }
+
       for (let i = 0; i < primitiveNum; i++) {
         const primitive = meshComponent!.mesh.getPrimitiveAt(i);
-        this.__webglResourceRepository.resendVertexBuffer(primitive, primitive.vertexHandles!.vboHandles);
+        this.__webglResourceRepository.setVertexDataToPipeline(
+          { vaoHandle: meshComponent.mesh.getVaoUids(i), iboHandle: primitive.vertexHandles!.iboHandle, vboHandles: primitive.vertexHandles!.vboHandles },
+          primitive, meshComponent.mesh.variationVBOUid);
       }
-    }
-
-    for (let i = 0; i < primitiveNum; i++) {
-      const primitive = meshComponent!.mesh.getPrimitiveAt(i);
-      this.__webglResourceRepository.setVertexDataToPipeline(
-        { vaoHandle: meshComponent.mesh.getVaoUids(i), iboHandle: primitive.vertexHandles!.iboHandle, vboHandles: primitive.vertexHandles!.vboHandles },
-        primitive, meshComponent.mesh.variationVBOUid);
     }
   }
 

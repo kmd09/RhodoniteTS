@@ -11,7 +11,7 @@ import Vector2 from "../math/Vector2";
 import AABB from "../math/AABB";
 import CGAPIResourceRepository from "../renderer/CGAPIResourceRepository";
 import Entity from "../core/Entity";
-import { Index, CGAPIResourceHandle, MeshUID } from "../../types/CommonTypes";
+import { Index, CGAPIResourceHandle, MeshUID, EntityUID, Count } from "../../types/CommonTypes";
 import { thisExpression } from "@babel/types";
 
 /**
@@ -40,6 +40,7 @@ export default class Mesh {
   private static __originalMeshes: Mesh[] = [];
   public tangentCalculationMode: Index = 1; // 0: Off, 1: auto, 2: force calculation
   public isPreComputeForRayCastPickingEnable: boolean = false;
+  private __entityUids?: Float32Array;
 
   constructor() {
     this.__meshUID = ++Mesh.__mesh_uid_count;
@@ -566,6 +567,14 @@ export default class Mesh {
     return this.__meshUID;
   }
 
+  get originalMeshUID() {
+    if (this.__instanceOf != null) {
+      return this.__instanceOf.meshUID;
+    } else {
+      return this.__meshUID;
+    }
+  }
+
   updateVariationVBO(): boolean {
 
     if (this.isInstanceMesh()) {
@@ -591,6 +600,7 @@ export default class Mesh {
       for (var i = 0; i < instanceNum; i++) {
         entityUIDs[i + 1] = this.__instances[i]._attachedEntityUID;
       }
+      this.__entityUids = entityUIDs;
 
       this.__variationVBOUid = webglResourceRepository.createVertexBufferFromTypedArray(entityUIDs);
 
@@ -617,8 +627,12 @@ export default class Mesh {
     return false;
   }
 
-  get instanceCountIncludeOriginal() {
-    return this.__instances.length + 1;
+  get instanceCountIncludeOriginal(): Count {
+    if (this.isInstanceMesh()) {
+      return this.__instanceOf!.instanceCountIncludeOriginal
+    } else {
+      return this.__instances.length + 1;
+    }
   }
 
   castRay(srcPointInLocal: Vector3, directionInLocal: Vector3, dotThreshold: number = 0) {

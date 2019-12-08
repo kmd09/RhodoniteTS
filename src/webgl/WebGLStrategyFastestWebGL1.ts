@@ -393,32 +393,26 @@ ${returnType} get_${methodName}(highp float instanceId, const int index) {
       const primitive = meshComponent.mesh.getPrimitiveAt(i);
       primitive.create3DAPIVertexData();
     }
-    meshComponent.mesh.updateVariationVBO();
   }
 
   $prerender(meshComponent: MeshComponent, meshRendererComponent: MeshRendererComponent, instanceIDBufferUid: WebGLResourceHandle) {
-    if (meshRendererComponent._readyForRendering) {
-      return;
-    }
 
     if (meshComponent.mesh == null) {
       MeshComponent.alertNoMeshSet(meshComponent);
       return;
     }
 
-    if (meshComponent.mesh.isInstanceMesh()) {
-      meshRendererComponent._readyForRendering = true;
-      return;
-    }
+    const updated = meshComponent.mesh.updateVariationVBO();
 
-    const primitiveNum = meshComponent.mesh.getPrimitiveNumber();
-    for (let i = 0; i < primitiveNum; i++) {
-      const primitive = meshComponent.mesh.getPrimitiveAt(i);
-      this.__webglResourceRepository.setVertexDataToPipeline(
-        { vaoHandle: meshComponent.mesh.getVaoUids(i), iboHandle: primitive.vertexHandles!.iboHandle, vboHandles: primitive.vertexHandles!.vboHandles },
-        primitive, meshComponent.mesh.variationVBOUid);
+    if (updated) {
+      const primitiveNum = meshComponent.mesh.getPrimitiveNumber();
+      for (let i = 0; i < primitiveNum; i++) {
+        const primitive = meshComponent.mesh.getPrimitiveAt(i);
+        this.__webglResourceRepository.setVertexDataToPipeline(
+          { vaoHandle: meshComponent.mesh.getVaoUids(i), iboHandle: primitive.vertexHandles!.iboHandle, vboHandles: primitive.vertexHandles!.vboHandles },
+          primitive, meshComponent.mesh.variationVBOUid);
+      }
     }
-    meshRendererComponent._readyForRendering = true;
   }
 
 
@@ -638,22 +632,25 @@ ${returnType} get_${methodName}(highp float instanceId, const int index) {
       this.__setCamera(renderPass, displayIdx);
       this.__setCurrentComponentSIDsForEachRenderPass(renderPass, displayIdx);
 
-      for (let idx = 0; idx < meshComponentSids.length; idx++) {
-        const sid = meshComponentSids[idx];
-        if (sid === Component.invalidComponentSID) {
-          break;
-        }
+      // for (let idx = 0; idx < meshComponentSids.length; idx++) {
+        // const sid = meshComponentSids[idx];
+        // if (sid === Component.invalidComponentSID) {
+          // break;
+        // }
 
-        const meshComponent = meshComponents[sid];
-        if (meshComponent == null) {
-          break;
-        }
+        // const meshComponent = meshComponents[sid];
+        // if (meshComponent == null) {
+          // break;
+        // }
+
+      const uniqueMeshComponents = renderPass.uniqueMeshComponents;
+      if (uniqueMeshComponents == null) {
+        break;
+      }
+      for (let meshComponent of uniqueMeshComponents) {
         const mesh = meshComponent.mesh!;
-        if (!(mesh && mesh.isOriginalMesh())) {
-          continue;
-        }
 
-        WebGLStrategyCommonMethod.startDepthMasking(idx, gl, renderPass);
+        // WebGLStrategyCommonMethod.startDepthMasking(idx, gl, renderPass);
 
         const entity = meshComponent.entity;
         this.__setCurrentComponentSIDsForEachEntity(gl, renderPass, entity);
@@ -675,8 +672,6 @@ ${returnType} get_${methodName}(highp float instanceId, const int index) {
           if (shaderProgramUid === -1) {
             continue;
           }
-
-
 
           this.attachVertexDataInner(mesh, primitive, i, glw, mesh.variationVBOUid);
           if (shaderProgramUid !== this.__lastShader) {

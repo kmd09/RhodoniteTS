@@ -5,7 +5,7 @@ import SceneGraphComponent from "../components/SceneGraphComponent";
 import MeshComponent from "../components/MeshComponent";
 import Vector4 from "../math/Vector4";
 import CameraComponent from "../components/CameraComponent";
-import { EntityUID } from "../../types/CommonTypes";
+import { EntityUID, Index } from "../../types/CommonTypes";
 import Material from "../materials/Material";
 import { WebGLStrategy } from "../../rhodonite-webgl";
 import System from "../system/System";
@@ -20,6 +20,7 @@ export default class RenderPass extends RnObject {
   private __sceneGraphDirectlyAdded: SceneGraphComponent[] = [];
   private __topLevelSceneGraphComponents?: SceneGraphComponent[] = [];
   private __meshComponents?: MeshComponent[];
+  private __uniqueMeshComponents?: MeshComponent[];
   private __frameBuffer?: FrameBuffer;
   private __viewport?: Vector4;
   public toClearColorBuffer = false;
@@ -95,6 +96,7 @@ export default class RenderPass extends RnObject {
    */
   clearEntities() {
     this.__meshComponents = void 0;
+    this.__uniqueMeshComponents = void 0;
     this.__topLevelSceneGraphComponents = void 0;
     this.__entities = [];
   }
@@ -119,10 +121,17 @@ export default class RenderPass extends RnObject {
   private __collectMeshComponents() {
     if (this.__meshComponents == null) {
       this.__meshComponents = [];
+      this.__uniqueMeshComponents = [];
+      const existOriginalMeshIDs: Index[] = [];
       this.__entities.filter((entity) => {
         const meshComponent = entity.getMesh();
         if (meshComponent) {
           this.__meshComponents!.push(meshComponent);
+          const originalMeshUID = meshComponent.mesh!.originalMeshUID;
+          if (existOriginalMeshIDs.indexOf(originalMeshUID) === -1) {
+            existOriginalMeshIDs.push(originalMeshUID);
+            this.__uniqueMeshComponents!.push(meshComponent);
+          }
         }
       });
     }
@@ -135,6 +144,11 @@ export default class RenderPass extends RnObject {
   get meshComponents() {
     this.__collectMeshComponents();
     return this.__meshComponents;
+  }
+
+  get uniqueMeshComponents() {
+    this.__collectMeshComponents();
+    return this.__uniqueMeshComponents;
   }
 
   /**

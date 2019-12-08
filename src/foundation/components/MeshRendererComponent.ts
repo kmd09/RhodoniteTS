@@ -27,6 +27,9 @@ import WebGLStrategyFastestWebGL1 from '../../webgl/WebGLStrategyFastestWebGL1';
 import Primitive from '../geometry/Primitive';
 import { ComponentSID, CGAPIResourceHandle, Count, Index, ObjectUID, ComponentTID, EntityUID } from '../../types/CommonTypes';
 import AbstractMaterialNode from '../materials/AbstractMaterialNode';
+import Scalar from '../math/Scalar';
+import GlobalDataRepository from '../core/GlobalDataRepository';
+import { ShaderSemantics } from '../definitions/ShaderSemantics';
 
 export default class MeshRendererComponent extends Component {
   private __meshComponent?: MeshComponent;
@@ -42,6 +45,7 @@ export default class MeshRendererComponent extends Component {
   public rotationOfCubeMap = 0;
 
   private static __webglResourceRepository?: WebGLResourceRepository;
+  private static __globalDataRepository = GlobalDataRepository.getInstance();
   private static __componentRepository: ComponentRepository = ComponentRepository.getInstance();
   private static __instanceIDBufferUid: CGAPIResourceHandle = CGAPIResourceRepository.InvalidCGAPIResourceUid;
   private static __webGLStrategy?: WebGLStrategy;
@@ -129,9 +133,9 @@ export default class MeshRendererComponent extends Component {
       entity, renderPass, renderPassTickCount, this.diffuseCubeMap, this.specularCubeMap);
 
     if (this.__meshComponent!.mesh) {
-      if (this.__meshComponent!.mesh.weights.length > 0) {
+      // if (this.__meshComponent!.mesh.weights.length > 0) {
         this.moveStageTo(ProcessStage.PreRender);
-      }
+      // }
     } else {
       MeshComponent.alertNoMeshSet(this.__meshComponent!);
     }
