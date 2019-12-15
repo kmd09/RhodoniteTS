@@ -48,6 +48,7 @@
   },
   "dependencies": {
     "requirejs": "^2.3.6",
-    "shaderity": "0.1.14"
+    "shaderity": "0.1.14",
+    "webxr-polyfill": "^2.0.0"
   }
 }

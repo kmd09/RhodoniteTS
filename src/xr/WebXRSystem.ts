@@ -2,10 +2,15 @@ import CGAPIResourceRepository from "../foundation/renderer/CGAPIResourceReposit
 
 declare const XRSession: any;
 declare const XRWebGLLayer: any;
+const WebXRPolyfill:any = require('webxr-polyfill').default;
 
 declare global {
   interface Navigator {
     xr: any;
+  }
+
+  interface Window {
+    __webxrPolyfill: any
   }
 }
 
@@ -21,6 +26,7 @@ export default class WebXRSystem {
 
   static getInstance() {
     if (!this.__instance) {
+      window.__webxrPolyfill = new WebXRPolyfill();
       this.__instance = new WebXRSystem();
     }
 
