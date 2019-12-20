@@ -8,6 +8,9 @@ const load = async function (time) {
   const system = Rn.System.getInstance();
   const gl = system.setProcessApproachAndCanvas(Rn.ProcessApproach.UniformWebGL1, document.getElementById('world'));
 
+  await webXRSystem.readyForWebXR(document.getElementById('enter-web-ar'));
+  await webXRSystem.enterWebXR();
+
   Rn.CameraComponent.main = 0;
   let startTime = Date.now();
   let count = 0;
