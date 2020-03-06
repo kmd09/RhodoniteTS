@@ -224,6 +224,10 @@ ${prerequisitesShaderityObject.code}
       }
 
       let ifCondition = ''
+      let ifIdx = -1;
+      let ifStrArray: string[] = [];
+      let ifContextNum = 0;
+      let ifContextCount = 0;
       for (let i = 0; i < materialNodes.length; i++) {
         const materialNode = materialNodes[i];
         const functionName = materialNode.shaderFunctionName;
@@ -237,10 +241,17 @@ ${prerequisitesShaderityObject.code}
         let rowStr = ''
         if (functionName === 'ifStatement') {
           ifCondition = varInputNames[i][0];
+          ifContextNum = materialNode.getOutputs().length;
         } else {
           if (functionName.match(/^blockBegin_/)) {
-            rowStr += `if (${ifCondition}) {\n`;
-            ifCondition = ''
+            if (materialNode.inputConnections[0].outputNameOfPrev === 'IfStart') {
+              ifStrArray.unshift(`if (${ifCondition}) {\n`);
+              ifIdx = 0;
+              ifCondition = '';
+            } else if (materialNode.inputConnections[0].outputNameOfPrev === 'ElseStart') {
+              ifStrArray.push(` else {\n`);
+              ifIdx = ifStrArray.length - 1;
+            }
           }
 
           if (materialNode.getInputs().length != varInputNames[i].length ||
@@ -248,24 +259,23 @@ ${prerequisitesShaderityObject.code}
             continue;
           }
           const varNames = varInputNames[i].concat(varOutputNames[i]);
-          if (varNames.length > 0) {
-            // Call node functions
-            rowStr += `${functionName}(`;
-            for (let k = 0; k < varNames.length; k++) {
-              const varName = varNames[k];
-              if (varName == null) {
-                continue;
-              }
-              if (k !== 0) {
-                rowStr += ', ';
-              }
-              rowStr += varNames[k];
-            }
-            rowStr += ');\n';
+
+          if (ifIdx === -1) {
+            rowStr += this.__makeCallFunctionStr(varNames, functionName);
+          } else {
+            ifStrArray[ifIdx] += this.__makeCallFunctionStr(varNames, functionName);
           }
 
           if (functionName.match(/^blockEnd_/)) {
-            rowStr += `}\n`;
+            ifStrArray[ifIdx] += `}\n`;
+            ifContextCount++;
+            ifIdx = -1;
+            if (ifContextCount >= ifContextNum) {
+              rowStr += ifStrArray.join('');
+              ifContextNum = 0;
+              ifContextCount = 0;
+              ifStrArray.length = 0;
+            }
           }
         }
 
@@ -275,5 +285,26 @@ ${prerequisitesShaderityObject.code}
       shaderBody += GLSLShader.glslMainEnd;
 
       return shaderBody;
+  }
+
+  private static __makeCallFunctionStr(varNames: string[], functionName: string) {
+    let rowStr = '';
+    if (varNames.length > 0) {
+      // Call node functions
+      rowStr += `${functionName}(`;
+      for (let k = 0; k < varNames.length; k++) {
+        const varName = varNames[k];
+        if (varName == null) {
+          continue;
+        }
+        if (k !== 0) {
+          rowStr += ', ';
+        }
+        rowStr += varNames[k];
+      }
+      rowStr += ');\n';
+    }
+
+    return rowStr;
   }
 }

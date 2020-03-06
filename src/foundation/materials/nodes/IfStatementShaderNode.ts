@@ -21,7 +21,7 @@ export default class IfStatementShaderNode extends AbstractShaderNode {
       {
         compositionType: CompositionType.Unknown,
         componentType: ComponentType.Unknown,
-        name: 'ifStart',
+        name: 'IfStart',
       });
 
   }
