@@ -226,9 +226,9 @@ ${prerequisitesShaderityObject.code}
 
       }
 
-      let ifCondition = ''
       let ifIdx = -1;
       let ifStrArray: string[] = [];
+      let ifConditionArray: string[]|undefined[] = [];
       let ifContextNum = 0;
       let ifContextCount = 0;
       for (let i = 0; i < materialNodes.length; i++) {
@@ -243,18 +243,24 @@ ${prerequisitesShaderityObject.code}
 
         let rowStr = ''
         if (functionName === IfStatementShaderNode.functionName) {
-          ifCondition = varInputNames[i][0];
+          for (let j = 0; j<varInputNames[i].length; j++) {
+            ifConditionArray[j] = varInputNames[i][j];
+          }
           ifContextNum = materialNode.getOutputs().length;
         } else {
           if (functionName.match(new RegExp(`^${BlockBeginShaderNode.functionName}_`))) {
+            const elseIfMatch = materialNode.inputConnections[0].outputNameOfPrev.match(new RegExp(`${IfStatementShaderNode.ElseIfStart}_(\\d)`));
             if (materialNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.IfStart) {
-              ifStrArray.unshift(`if (${ifCondition}) {\n`);
               ifIdx = 0;
-              ifCondition = '';
+              ifStrArray[ifIdx] = `if (${ifConditionArray[0]}) {\n`;
+            } else if (elseIfMatch) {
+              ifIdx = parseInt(elseIfMatch[1]) + 1;
+              ifStrArray[ifIdx] = `else if (${ifConditionArray[ifIdx]}) {\n`;
             } else if (materialNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.ElseStart) {
-              ifStrArray.push(` else {\n`);
-              ifIdx = ifStrArray.length - 1;
+              ifIdx = ifContextNum - 1;
+              ifStrArray[ifIdx] = ` else {\n`;
             }
+            ifConditionArray[ifIdx] = undefined;
           }
 
           if (materialNode.getInputs().length != varInputNames[i].length ||
