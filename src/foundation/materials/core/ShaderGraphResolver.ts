@@ -159,6 +159,7 @@ ${prerequisitesShaderityObject.code}
       const varInputNames: Array<Array<string>> = [];
       const varOutputNames: Array<Array<string>> = [];
       const existingInputs: ShaderNodeUID[] = [];
+      const existingInputsVarName: string[] = [];
       const existingOutputsVarName: Map<ShaderNodeUID, string> = new Map()
       const existingOutputs: ShaderNodeUID[] = [];
       for (let i = 1; i < materialNodes.length; i++) {
@@ -181,18 +182,19 @@ ${prerequisitesShaderityObject.code}
           const outputSocketOfPrev = inputNode.getOutput(inputConnection.outputNameOfPrev);
           const inputSocketOfThis = materialNode.getInput(inputConnection.inputNameOfThis);
           let varName = `${outputSocketOfPrev!.name}_${inputConnection.shaderNodeUid}_to_${materialNode.shaderNodeUid}`;
-          if (existingInputs.indexOf(inputNode.shaderNodeUid) === -1) {
+          if (existingInputsVarName.indexOf(varName) === -1) {
             const glslTypeStr = inputSocketOfThis!.compositionType.getGlslStr(inputSocketOfThis!.componentType);
             const glslInitialValue = inputSocketOfThis!.compositionType.getGlslInitialValue(inputSocketOfThis!.componentType);
             const rowStr = `${glslTypeStr} ${varName} = ${glslInitialValue};\n`;
             shaderBody += rowStr;
           }
           const existVarName = existingOutputsVarName.get(inputNode.shaderNodeUid);
-          if (existVarName) {
-            varName = existVarName;
+          if (existVarName === varName) {
+            // varName = existVarName;
           }
           varInputNames[i].push(varName);
           existingInputs.push(inputConnection.shaderNodeUid)
+          existingInputsVarName.push(varName)
         }
         for (let j = i; j < materialNodes.length; j++) {
           const targetMaterialNode = materialNodes[j];
