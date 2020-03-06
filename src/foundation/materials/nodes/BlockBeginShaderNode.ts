@@ -9,8 +9,9 @@ import { ShaderSocket } from "../core/AbstractMaterialNode";
 export default class BlockBeginShaderNode extends AbstractShaderNode {
   private __valueInputs: ShaderSocket[] = []
   private __valueOutputs: ShaderSocket[] = []
+  public static readonly functionName = 'blockBegin';
   constructor() {
-    super('blockBegin');
+    super(BlockBeginShaderNode.functionName);
 
     this.__shaderFunctionName += '_' + this.__shaderNodeUid;
 

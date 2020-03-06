@@ -9,6 +9,9 @@ import { ComponentType } from "../../definitions/ComponentType";
 import GLSLShader from "../../../webgl/shaders/GLSLShader";
 import mainPrerequisitesShaderityObject from "../../../webgl/shaderity_shaders/common/mainPrerequisites.glsl"
 import prerequisitesShaderityObject from "../../../webgl/shaderity_shaders/common/prerequisites.glsl"
+import IfStatementShaderNode from "../nodes/IfStatementShaderNode";
+import BlockBeginShaderNode from "../nodes/BlockBeginShaderNode";
+import BlockEndShaderNode from "../nodes/BlockEndShaderNode";
 
 export default class ShaderGraphResolver {
 
@@ -239,16 +242,16 @@ ${prerequisitesShaderityObject.code}
         }
 
         let rowStr = ''
-        if (functionName === 'ifStatement') {
+        if (functionName === IfStatementShaderNode.functionName) {
           ifCondition = varInputNames[i][0];
           ifContextNum = materialNode.getOutputs().length;
         } else {
-          if (functionName.match(/^blockBegin_/)) {
-            if (materialNode.inputConnections[0].outputNameOfPrev === 'IfStart') {
+          if (functionName.match(new RegExp(`^${BlockBeginShaderNode.functionName}_`))) {
+            if (materialNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.IfStart) {
               ifStrArray.unshift(`if (${ifCondition}) {\n`);
               ifIdx = 0;
               ifCondition = '';
-            } else if (materialNode.inputConnections[0].outputNameOfPrev === 'ElseStart') {
+            } else if (materialNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.ElseStart) {
               ifStrArray.push(` else {\n`);
               ifIdx = ifStrArray.length - 1;
             }
@@ -266,7 +269,7 @@ ${prerequisitesShaderityObject.code}
             ifStrArray[ifIdx] += this.__makeCallFunctionStr(varNames, functionName);
           }
 
-          if (functionName.match(/^blockEnd_/)) {
+          if (functionName.match(new RegExp(`^${BlockEndShaderNode.functionName}_`))) {
             ifStrArray[ifIdx] += `}\n`;
             ifContextCount++;
             ifIdx = -1;

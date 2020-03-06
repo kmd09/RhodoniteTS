@@ -6,10 +6,12 @@ import IfStatementShader from "../../../webgl/shaders/nodes/IfStatementShader";
 import AbstractShaderNode from "../core/AbstractShaderNode";
 
 export default class IfStatementShaderNode extends AbstractShaderNode {
-  private elseOutputName = 'ElseStart';
+  public static readonly functionName = 'ifStatement';
+  public static readonly IfStart = 'IfStart';
+  public static readonly ElseStart = 'ElseStart'
 
   constructor() {
-    super('ifStatement', undefined, new IfStatementShader());
+    super(IfStatementShaderNode.functionName, undefined, new IfStatementShader());
 
     this.__inputs.push(
       {
@@ -21,7 +23,7 @@ export default class IfStatementShaderNode extends AbstractShaderNode {
       {
         compositionType: CompositionType.Unknown,
         componentType: ComponentType.Unknown,
-        name: 'IfStart',
+        name: IfStatementShaderNode.IfStart,
       });
 
   }
@@ -32,11 +34,11 @@ export default class IfStatementShaderNode extends AbstractShaderNode {
         {
           compositionType: CompositionType.Unknown,
           componentType: ComponentType.Unknown,
-          name: this.elseOutputName,
+          name: IfStatementShaderNode.ElseStart,
         });
     } else {
       this.__outputs = this.__outputs.filter((output)=>{
-        if (output.name !== this.elseOutputName) {
+        if (output.name !== IfStatementShaderNode.ElseStart) {
           return true;
         } else {
           return false;

@@ -5,9 +5,9 @@ import AbstractShaderNode from "../core/AbstractShaderNode";
 import BlockEndShader from "../../../webgl/shaders/nodes/BlockEndShader";
 
 export default class BlockEndShaderNode extends AbstractShaderNode {
-
+  public static readonly functionName = 'blockEnd';
   constructor() {
-    super('blockEnd');
+    super(BlockEndShaderNode.functionName);
 
     this.__shaderFunctionName += '_' + this.__shaderNodeUid;
 
