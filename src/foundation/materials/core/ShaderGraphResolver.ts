@@ -247,44 +247,44 @@ ${prerequisitesShaderityObject.code}
             ifConditionArray[j] = varInputNames[i][j];
           }
           ifContextNum = materialNode.getOutputs().length;
-        } else {
-          if (functionName.match(new RegExp(`^${BlockBeginShaderNode.functionName}_`))) {
-            const elseIfMatch = materialNode.inputConnections[0].outputNameOfPrev.match(new RegExp(`${IfStatementShaderNode.ElseIfStart}_(\\d)`));
-            if (materialNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.IfStart) {
-              ifIdx = 0;
-              ifStrArray[ifIdx] = `if (${ifConditionArray[0]}) {\n`;
-            } else if (elseIfMatch) {
-              ifIdx = parseInt(elseIfMatch[1]) + 1;
-              ifStrArray[ifIdx] = `else if (${ifConditionArray[ifIdx]}) {\n`;
-            } else if (materialNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.ElseStart) {
-              ifIdx = ifContextNum - 1;
-              ifStrArray[ifIdx] = ` else {\n`;
-            }
-            ifConditionArray[ifIdx] = undefined;
-          }
+        }
 
+        if (functionName.match(new RegExp(`^${BlockBeginShaderNode.functionName}_`))) {
+          const elseIfMatch = materialNode.inputConnections[0].outputNameOfPrev.match(new RegExp(`${IfStatementShaderNode.ElseIfStart}_(\\d)`));
+          if (materialNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.IfStart) {
+            ifIdx = 0;
+            ifStrArray[ifIdx] = `if (${ifConditionArray[0]}) {\n`;
+          } else if (elseIfMatch) {
+            ifIdx = parseInt(elseIfMatch[1]) + 1;
+            ifStrArray[ifIdx] = `else if (${ifConditionArray[ifIdx]}) {\n`;
+          } else if (materialNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.ElseStart) {
+            ifIdx = ifContextNum - 1;
+            ifStrArray[ifIdx] = ` else {\n`;
+          }
+          ifConditionArray[ifIdx] = undefined;
+        }
+
+        const varNames = varInputNames[i].concat(varOutputNames[i]);
+
+        if (ifIdx === -1) {
           if (materialNode.getInputs().length != varInputNames[i].length ||
             materialNode.getOutputs().length != varOutputNames[i].length) {
             continue;
           }
-          const varNames = varInputNames[i].concat(varOutputNames[i]);
+          rowStr += this.__makeCallFunctionStr(varNames, functionName);
+        } else {
+          ifStrArray[ifIdx] += this.__makeCallFunctionStr(varNames, functionName);
+        }
 
-          if (ifIdx === -1) {
-            rowStr += this.__makeCallFunctionStr(varNames, functionName);
-          } else {
-            ifStrArray[ifIdx] += this.__makeCallFunctionStr(varNames, functionName);
-          }
-
-          if (functionName.match(new RegExp(`^${BlockEndShaderNode.functionName}_`))) {
-            ifStrArray[ifIdx] += `}\n`;
-            ifContextCount++;
-            ifIdx = -1;
-            if (ifContextCount >= ifContextNum) {
-              rowStr += ifStrArray.join('');
-              ifContextNum = 0;
-              ifContextCount = 0;
-              ifStrArray.length = 0;
-            }
+        if (functionName.match(new RegExp(`^${BlockEndShaderNode.functionName}_`))) {
+          ifStrArray[ifIdx] += `}\n`;
+          ifContextCount++;
+          ifIdx = -1;
+          if (ifContextCount >= ifContextNum) {
+            rowStr += ifStrArray.join('');
+            ifContextNum = 0;
+            ifContextCount = 0;
+            ifStrArray.length = 0;
           }
         }
 
