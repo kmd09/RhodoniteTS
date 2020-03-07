@@ -13,6 +13,14 @@ import IfStatementShaderNode from "../nodes/IfStatementShaderNode";
 import BlockBeginShaderNode from "../nodes/BlockBeginShaderNode";
 import BlockEndShaderNode from "../nodes/BlockEndShaderNode";
 
+class IfState {
+  ifIdx = -1;
+  ifStrArray: string[] = [];
+  ifConditionArray: string[]|undefined[] = [];
+  ifContextNum = 0;
+  ifContextCount = 0;
+}
+
 export default class ShaderGraphResolver {
 
   static createVertexShaderCode(vertexNodes: AbstractShaderNode[]) {
@@ -226,11 +234,8 @@ ${prerequisitesShaderityObject.code}
 
       }
 
-      let ifIdx = -1;
-      let ifStrArray: string[] = [];
-      let ifConditionArray: string[]|undefined[] = [];
-      let ifContextNum = 0;
-      let ifContextCount = 0;
+      const blockNestLevel: IfState[] = [];
+      const ifState = new IfState();
       for (let i = 0; i < materialNodes.length; i++) {
         const materialNode = materialNodes[i];
         const functionName = materialNode.shaderFunctionName;
@@ -244,47 +249,47 @@ ${prerequisitesShaderityObject.code}
         let rowStr = ''
         if (functionName === IfStatementShaderNode.functionName) {
           for (let j = 0; j<varInputNames[i].length; j++) {
-            ifConditionArray[j] = varInputNames[i][j];
+            ifState.ifConditionArray[j] = varInputNames[i][j];
           }
-          ifContextNum = materialNode.getOutputs().length;
+          ifState.ifContextNum = materialNode.getOutputs().length;
         }
 
         if (functionName.match(new RegExp(`^${BlockBeginShaderNode.functionName}_`))) {
           const elseIfMatch = materialNode.inputConnections[0].outputNameOfPrev.match(new RegExp(`${IfStatementShaderNode.ElseIfStart}_(\\d)`));
           if (materialNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.IfStart) {
-            ifIdx = 0;
-            ifStrArray[ifIdx] = `if (${ifConditionArray[0]}) {\n`;
+            ifState.ifIdx = 0;
+            ifState.ifStrArray[ifState.ifIdx] = `if (${ifState.ifConditionArray[0]}) {\n`;
           } else if (elseIfMatch) {
-            ifIdx = parseInt(elseIfMatch[1]) + 1;
-            ifStrArray[ifIdx] = `else if (${ifConditionArray[ifIdx]}) {\n`;
+            ifState.ifIdx = parseInt(elseIfMatch[1]) + 1;
+            ifState.ifStrArray[ifState.ifIdx] = `else if (${ifState.ifConditionArray[ifState.ifIdx]}) {\n`;
           } else if (materialNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.ElseStart) {
-            ifIdx = ifContextNum - 1;
-            ifStrArray[ifIdx] = ` else {\n`;
+            ifState.ifIdx = ifState.ifContextNum - 1;
+            ifState.ifStrArray[ifState.ifIdx] = ` else {\n`;
           }
-          ifConditionArray[ifIdx] = undefined;
+          ifState.ifConditionArray[ifState.ifIdx] = undefined;
         }
 
         const varNames = varInputNames[i].concat(varOutputNames[i]);
 
-        if (ifIdx === -1) {
+        if (ifState.ifIdx === -1) {
           if (materialNode.getInputs().length != varInputNames[i].length ||
             materialNode.getOutputs().length != varOutputNames[i].length) {
             continue;
           }
           rowStr += this.__makeCallFunctionStr(varNames, functionName);
         } else {
-          ifStrArray[ifIdx] += this.__makeCallFunctionStr(varNames, functionName);
+          ifState.ifStrArray[ifState.ifIdx] += this.__makeCallFunctionStr(varNames, functionName);
         }
 
         if (functionName.match(new RegExp(`^${BlockEndShaderNode.functionName}_`))) {
-          ifStrArray[ifIdx] += `}\n`;
-          ifContextCount++;
-          ifIdx = -1;
-          if (ifContextCount >= ifContextNum) {
-            rowStr += ifStrArray.join('');
-            ifContextNum = 0;
-            ifContextCount = 0;
-            ifStrArray.length = 0;
+          ifState.ifStrArray[ifState.ifIdx] += `}\n`;
+          ifState.ifContextCount++;
+          ifState.ifIdx = -1;
+          if (ifState.ifContextCount >= ifState.ifContextNum) {
+            rowStr += ifState.ifStrArray.join('');
+            ifState.ifContextNum = 0;
+            ifState.ifContextCount = 0;
+            ifState.ifStrArray.length = 0;
           }
         }
 
