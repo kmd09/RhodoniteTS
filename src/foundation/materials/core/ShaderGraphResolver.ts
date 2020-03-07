@@ -234,7 +234,6 @@ ${prerequisitesShaderityObject.code}
 
       }
 
-      const blockNestLevel: IfState[] = [];
       const ifState = new IfState();
       for (let i = 0; i < materialNodes.length; i++) {
         const materialNode = materialNodes[i];
@@ -246,59 +245,65 @@ ${prerequisitesShaderityObject.code}
           varOutputNames[i] = [];
         }
 
-        let rowStr = ''
-        if (functionName === IfStatementShaderNode.functionName) {
-          for (let j = 0; j<varInputNames[i].length; j++) {
-            ifState.ifConditionArray[j] = varInputNames[i][j];
-          }
-          ifState.ifContextNum = materialNode.getOutputs().length;
-        }
-
-        if (functionName.match(new RegExp(`^${BlockBeginShaderNode.functionName}_`))) {
-          const elseIfMatch = materialNode.inputConnections[0].outputNameOfPrev.match(new RegExp(`${IfStatementShaderNode.ElseIfStart}_(\\d)`));
-          if (materialNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.IfStart) {
-            ifState.ifIdx = 0;
-            ifState.ifStrArray[ifState.ifIdx] = `if (${ifState.ifConditionArray[0]}) {\n`;
-          } else if (elseIfMatch) {
-            ifState.ifIdx = parseInt(elseIfMatch[1]) + 1;
-            ifState.ifStrArray[ifState.ifIdx] = `else if (${ifState.ifConditionArray[ifState.ifIdx]}) {\n`;
-          } else if (materialNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.ElseStart) {
-            ifState.ifIdx = ifState.ifContextNum - 1;
-            ifState.ifStrArray[ifState.ifIdx] = ` else {\n`;
-          }
-          ifState.ifConditionArray[ifState.ifIdx] = undefined;
-        }
-
-        const varNames = varInputNames[i].concat(varOutputNames[i]);
-
-        if (ifState.ifIdx === -1) {
-          if (materialNode.getInputs().length != varInputNames[i].length ||
-            materialNode.getOutputs().length != varOutputNames[i].length) {
-            continue;
-          }
-          rowStr += this.__makeCallFunctionStr(varNames, functionName);
-        } else {
-          ifState.ifStrArray[ifState.ifIdx] += this.__makeCallFunctionStr(varNames, functionName);
-        }
-
-        if (functionName.match(new RegExp(`^${BlockEndShaderNode.functionName}_`))) {
-          ifState.ifStrArray[ifState.ifIdx] += `}\n`;
-          ifState.ifContextCount++;
-          ifState.ifIdx = -1;
-          if (ifState.ifContextCount >= ifState.ifContextNum) {
-            rowStr += ifState.ifStrArray.join('');
-            ifState.ifContextNum = 0;
-            ifState.ifContextCount = 0;
-            ifState.ifStrArray.length = 0;
-          }
-        }
-
-        shaderBody += rowStr;
+        shaderBody += this.__makeCallFunctions(functionName, varInputNames[i], varOutputNames[i], ifState, materialNode);
       }
 
       shaderBody += GLSLShader.glslMainEnd;
 
       return shaderBody;
+  }
+
+  private static __makeCallFunctions(functionName: string, varInputNames: string[], varOutputNames: string[],
+    ifState: IfState, shaderNode: AbstractShaderNode) {
+    let rowStr = '';
+
+    if (functionName === IfStatementShaderNode.functionName) {
+      for (let j = 0; j<varInputNames.length; j++) {
+        ifState.ifConditionArray[j] = varInputNames[j];
+      }
+      ifState.ifContextNum = shaderNode.getOutputs().length;
+    }
+
+    if (functionName.match(new RegExp(`^${BlockBeginShaderNode.functionName}_`))) {
+      const elseIfMatch = shaderNode.inputConnections[0].outputNameOfPrev.match(new RegExp(`${IfStatementShaderNode.ElseIfStart}_(\\d)`));
+      if (shaderNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.IfStart) {
+        ifState.ifIdx = 0;
+        ifState.ifStrArray[ifState.ifIdx] = `if (${ifState.ifConditionArray[0]}) {\n`;
+      } else if (elseIfMatch) {
+        ifState.ifIdx = parseInt(elseIfMatch[1]) + 1;
+        ifState.ifStrArray[ifState.ifIdx] = `else if (${ifState.ifConditionArray[ifState.ifIdx]}) {\n`;
+      } else if (shaderNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.ElseStart) {
+        ifState.ifIdx = ifState.ifContextNum - 1;
+        ifState.ifStrArray[ifState.ifIdx] = `else {\n`;
+      }
+      ifState.ifConditionArray[ifState.ifIdx] = undefined;
+    }
+
+    const varNames = varInputNames.concat(varOutputNames);
+
+    if (ifState.ifIdx === -1) {
+      if (shaderNode.getInputs().length != varInputNames.length ||
+        shaderNode.getOutputs().length != varOutputNames.length) {
+        return rowStr;
+      }
+      rowStr += this.__makeCallFunctionStr(varNames, functionName);
+    } else {
+      ifState.ifStrArray[ifState.ifIdx] += this.__makeCallFunctionStr(varNames, functionName);
+    }
+
+    if (functionName.match(new RegExp(`^${BlockEndShaderNode.functionName}_`))) {
+      ifState.ifStrArray[ifState.ifIdx] += `}\n`;
+      ifState.ifContextCount++;
+      ifState.ifIdx = -1;
+      if (ifState.ifContextCount >= ifState.ifContextNum) {
+        rowStr += ifState.ifStrArray.join('');
+        ifState.ifContextNum = 0;
+        ifState.ifContextCount = 0;
+        ifState.ifStrArray.length = 0;
+      }
+    }
+
+    return rowStr;
   }
 
   private static __makeCallFunctionStr(varNames: string[], functionName: string) {
