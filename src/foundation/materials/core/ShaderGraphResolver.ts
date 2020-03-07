@@ -21,6 +21,12 @@ class IfState {
   ifContextCount = 0;
 }
 
+enum ProcessType {
+  NORMAL,
+  IF,
+  FOR
+}
+
 export default class ShaderGraphResolver {
 
   static createVertexShaderCode(vertexNodes: AbstractShaderNode[]) {
@@ -245,7 +251,7 @@ ${prerequisitesShaderityObject.code}
           varOutputNames[i] = [];
         }
 
-        shaderBody += this.__makeCallFunctions(functionName, varInputNames[i], varOutputNames[i], ifState, materialNode);
+        shaderBody += this.__makeCallFunctions(functionName, varInputNames[i], varOutputNames[i], materialNode, ifState);
       }
 
       shaderBody += GLSLShader.glslMainEnd;
@@ -253,44 +259,55 @@ ${prerequisitesShaderityObject.code}
       return shaderBody;
   }
 
-  private static __makeCallFunctions(functionName: string, varInputNames: string[], varOutputNames: string[],
-    ifState: IfState, shaderNode: AbstractShaderNode) {
-    let rowStr = '';
+  private static __makeCallFunctions(functionName: string, varInputNames: string[], varOutputNames: string[], shaderNode: AbstractShaderNode, ifState: IfState) {
 
-    if (functionName === IfStatementShaderNode.functionName) {
-      for (let j = 0; j<varInputNames.length; j++) {
-        ifState.ifConditionArray[j] = varInputNames[j];
-      }
-      ifState.ifContextNum = shaderNode.getOutputs().length;
-    }
-
-    if (functionName.match(new RegExp(`^${BlockBeginShaderNode.functionName}_`))) {
-      const elseIfMatch = shaderNode.inputConnections[0].outputNameOfPrev.match(new RegExp(`${IfStatementShaderNode.ElseIfStart}_(\\d)`));
-      if (shaderNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.IfStart) {
-        ifState.ifIdx = 0;
-        ifState.ifStrArray[ifState.ifIdx] = `if (${ifState.ifConditionArray[0]}) {\n`;
-      } else if (elseIfMatch) {
-        ifState.ifIdx = parseInt(elseIfMatch[1]) + 1;
-        ifState.ifStrArray[ifState.ifIdx] = `else if (${ifState.ifConditionArray[ifState.ifIdx]}) {\n`;
-      } else if (shaderNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.ElseStart) {
-        ifState.ifIdx = ifState.ifContextNum - 1;
-        ifState.ifStrArray[ifState.ifIdx] = `else {\n`;
-      }
-      ifState.ifConditionArray[ifState.ifIdx] = undefined;
-    }
+    let shaderStr = '';
 
     const varNames = varInputNames.concat(varOutputNames);
+    let [rowStr, process] = ShaderGraphResolver.processIf(functionName, varInputNames, ifState, shaderNode, varNames, shaderStr);
 
-    if (ifState.ifIdx === -1) {
+    if (process === ProcessType.NORMAL) {
       if (shaderNode.getInputs().length != varInputNames.length ||
         shaderNode.getOutputs().length != varOutputNames.length) {
         return rowStr;
       }
       rowStr += this.__makeCallFunctionStr(varNames, functionName);
-    } else {
-      ifState.ifStrArray[ifState.ifIdx] += this.__makeCallFunctionStr(varNames, functionName);
     }
 
+
+    return rowStr;
+  }
+
+  private static processIf(functionName: string, varInputNames: string[], ifState: IfState, shaderNode: AbstractShaderNode, varNames: string[], rowStr: string) {
+    let processType = ProcessType.NORMAL;
+    if (functionName === IfStatementShaderNode.functionName) {
+      for (let j = 0; j < varInputNames.length; j++) {
+        ifState.ifConditionArray[j] = varInputNames[j];
+      }
+      ifState.ifContextNum = shaderNode.getOutputs().length;
+      processType = ProcessType.IF;
+    }
+    if (functionName.match(new RegExp(`^${BlockBeginShaderNode.functionName}_`))) {
+      const elseIfMatch = shaderNode.inputConnections[0].outputNameOfPrev.match(new RegExp(`${IfStatementShaderNode.ElseIfStart}_(\\d)`));
+      if (shaderNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.IfStart) {
+        ifState.ifIdx = 0;
+        ifState.ifStrArray[ifState.ifIdx] = `if (${ifState.ifConditionArray[0]}) {\n`;
+      }
+      else if (elseIfMatch) {
+        ifState.ifIdx = parseInt(elseIfMatch[1]) + 1;
+        ifState.ifStrArray[ifState.ifIdx] = `else if (${ifState.ifConditionArray[ifState.ifIdx]}) {\n`;
+      }
+      else if (shaderNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.ElseStart) {
+        ifState.ifIdx = ifState.ifContextNum - 1;
+        ifState.ifStrArray[ifState.ifIdx] = `else {\n`;
+      }
+      ifState.ifConditionArray[ifState.ifIdx] = undefined;
+      processType = ProcessType.IF;
+    }
+    if (ifState.ifIdx !== -1) {
+      ifState.ifStrArray[ifState.ifIdx] += this.__makeCallFunctionStr(varNames, functionName);
+      processType = ProcessType.IF;
+    }
     if (functionName.match(new RegExp(`^${BlockEndShaderNode.functionName}_`))) {
       ifState.ifStrArray[ifState.ifIdx] += `}\n`;
       ifState.ifContextCount++;
@@ -301,9 +318,9 @@ ${prerequisitesShaderityObject.code}
         ifState.ifContextCount = 0;
         ifState.ifStrArray.length = 0;
       }
+      processType = ProcessType.IF;
     }
-
-    return rowStr;
+    return [rowStr, processType];
   }
 
   private static __makeCallFunctionStr(varNames: string[], functionName: string) {
