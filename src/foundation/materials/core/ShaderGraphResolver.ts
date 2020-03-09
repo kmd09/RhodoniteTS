@@ -13,7 +13,10 @@ import IfStatementShaderNode from "../nodes/IfStatementShaderNode";
 import BlockBeginShaderNode from "../nodes/BlockBeginShaderNode";
 import BlockEndShaderNode from "../nodes/BlockEndShaderNode";
 
-class IfState {
+class ProcessState {
+  shaderStr = ''
+}
+class IfState extends ProcessState {
   ifIdx = -1;
   ifStrArray: string[] = [];
   ifConditionArray: string[]|undefined[] = [];
@@ -240,7 +243,7 @@ ${prerequisitesShaderityObject.code}
 
       }
 
-      const ifState = new IfState();
+      const blockNestLevel: ProcessState[] = [new ProcessState()];
       for (let i = 0; i < materialNodes.length; i++) {
         const materialNode = materialNodes[i];
         const functionName = materialNode.shaderFunctionName;
@@ -251,44 +254,45 @@ ${prerequisitesShaderityObject.code}
           varOutputNames[i] = [];
         }
 
-        shaderBody += this.__makeCallFunctions(functionName, varInputNames[i], varOutputNames[i], materialNode, ifState);
+        this.__makeCallFunctions(functionName, varInputNames[i], varOutputNames[i], materialNode, blockNestLevel);
       }
+
+      blockNestLevel.forEach((level)=>{
+        shaderBody += level.shaderStr;
+      });
 
       shaderBody += GLSLShader.glslMainEnd;
 
       return shaderBody;
   }
 
-  private static __makeCallFunctions(functionName: string, varInputNames: string[], varOutputNames: string[], shaderNode: AbstractShaderNode, ifState: IfState) {
+  private static __makeCallFunctions(functionName: string, varInputNames: string[], varOutputNames: string[], shaderNode: AbstractShaderNode, blockNestLevel: ProcessState[]) {
 
-    let shaderStr = '';
 
     const varNames = varInputNames.concat(varOutputNames);
-    let [rowStr, process] = ShaderGraphResolver.processIf(functionName, varInputNames, ifState, shaderNode, varNames, shaderStr);
+    let process = ShaderGraphResolver.processIf(functionName, varInputNames, varOutputNames, blockNestLevel, shaderNode);
 
     if (process === ProcessType.NORMAL) {
-      if (shaderNode.getInputs().length != varInputNames.length ||
-        shaderNode.getOutputs().length != varOutputNames.length) {
-        return rowStr;
-      }
-      rowStr += this.__makeCallFunctionStr(varNames, functionName);
+      const processState =  blockNestLevel[blockNestLevel.length - 1];
+      processState.shaderStr += this.__makeCallFunctionStr(varNames, functionName, shaderNode, varInputNames, varOutputNames);
     }
 
-
-    return rowStr;
   }
 
-  private static processIf(functionName: string, varInputNames: string[], ifState: IfState, shaderNode: AbstractShaderNode, varNames: string[], rowStr: string) {
+  private static processIf(functionName: string, varInputNames: string[], varOutputNames: string[], blockNestLevel: ProcessState[], shaderNode: AbstractShaderNode) {
     let processType = ProcessType.NORMAL;
     if (functionName === IfStatementShaderNode.functionName) {
+      const ifState = blockNestLevel[blockNestLevel.length - 1] as IfState;
       for (let j = 0; j < varInputNames.length; j++) {
         ifState.ifConditionArray[j] = varInputNames[j];
       }
       ifState.ifContextNum = shaderNode.getOutputs().length;
       processType = ProcessType.IF;
     }
+
     if (functionName.match(new RegExp(`^${BlockBeginShaderNode.functionName}_`))) {
       const elseIfMatch = shaderNode.inputConnections[0].outputNameOfPrev.match(new RegExp(`${IfStatementShaderNode.ElseIfStart}_(\\d)`));
+      const ifState = new IfState();
       if (shaderNode.inputConnections[0].outputNameOfPrev === IfStatementShaderNode.IfStart) {
         ifState.ifIdx = 0;
         ifState.ifStrArray[ifState.ifIdx] = `if (${ifState.ifConditionArray[0]}) {\n`;
@@ -303,28 +307,34 @@ ${prerequisitesShaderityObject.code}
       }
       ifState.ifConditionArray[ifState.ifIdx] = undefined;
       processType = ProcessType.IF;
-    }
-    if (ifState.ifIdx !== -1) {
-      ifState.ifStrArray[ifState.ifIdx] += this.__makeCallFunctionStr(varNames, functionName);
-      processType = ProcessType.IF;
+      blockNestLevel.push(ifState);
     }
     if (functionName.match(new RegExp(`^${BlockEndShaderNode.functionName}_`))) {
+      const ifState = blockNestLevel[blockNestLevel.length - 1] as IfState;
       ifState.ifStrArray[ifState.ifIdx] += `}\n`;
       ifState.ifContextCount++;
       ifState.ifIdx = -1;
       if (ifState.ifContextCount >= ifState.ifContextNum) {
-        rowStr += ifState.ifStrArray.join('');
+        const rowStr = ifState.ifStrArray.join('');
         ifState.ifContextNum = 0;
         ifState.ifContextCount = 0;
         ifState.ifStrArray.length = 0;
+        blockNestLevel.pop();
+        const parentIfState = blockNestLevel[blockNestLevel.length - 1];
+        parentIfState.shaderStr += rowStr;
       }
       processType = ProcessType.IF;
     }
-    return [rowStr, processType];
+    return processType;
   }
 
-  private static __makeCallFunctionStr(varNames: string[], functionName: string) {
+  private static __makeCallFunctionStr(varNames: string[], functionName: string, shaderNode: AbstractShaderNode, varInputNames: string[], varOutputNames: string[]) {
     let rowStr = '';
+    if (shaderNode.getInputs().length != varInputNames.length ||
+      shaderNode.getOutputs().length != varOutputNames.length) {
+      return rowStr;
+    }
+
     if (varNames.length > 0) {
       // Call node functions
       rowStr += `${functionName}(`;
