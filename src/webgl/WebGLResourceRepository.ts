@@ -38,7 +38,7 @@ export type VertexHandles = {
   setComplete: boolean;
 };
 
-type DirectTextureData = TypedArray | HTMLImageElement | HTMLCanvasElement;
+type DirectTextureData = TypedArray | HTMLImageElement | HTMLCanvasElement | HTMLVideoElement;
 
 export default class WebGLResourceRepository extends CGAPIResourceRepository {
   private static __instance: WebGLResourceRepository;
@@ -644,7 +644,7 @@ export default class WebGLResourceRepository extends CGAPIResourceRepository {
     this.__webglResources.set(resourceHandle, texture!);
 
     this.__glw!.bindTexture2D(0, texture);
-    if (data instanceof HTMLImageElement || data instanceof HTMLCanvasElement) {
+    if (data instanceof HTMLImageElement || data instanceof HTMLCanvasElement || data instanceof HTMLVideoElement) {
       if (this.__glw!.isWebGL2) {
         gl.texImage2D(gl.TEXTURE_2D, level, TextureParameter.RGBA8.index, width, height, border,
           format.index, ComponentType.UnsignedByte.index, data);
@@ -735,7 +735,7 @@ export default class WebGLResourceRepository extends CGAPIResourceRepository {
     }
     const mipmapDepth = basisFile.getNumLevels(0);
 
-    for (let i=0; i<mipmapDepth; i++) {
+    for (let i = 0; i < mipmapDepth; i++) {
       const width = basisFile.getImageWidth(0, i);
       const height = basisFile.getImageHeight(0, i);
       const textureSource = this.decodeBasisImage(basisFile, basisCompressionType!, 0, i);
@@ -1156,8 +1156,8 @@ export default class WebGLResourceRepository extends CGAPIResourceRepository {
       gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, magFilter.index);
     }
 
-    for (let i=0; i<mipmapDepth; i++) {
-      for (let j=0; j<numImages; j++) {
+    for (let i = 0; i < mipmapDepth; i++) {
+      for (let j = 0; j < numImages; j++) {
         const width = basisFile.getImageWidth(j, i);
         const height = basisFile.getImageHeight(j, i);
         const textureSource = this.decodeBasisImage(basisFile, basisCompressionType!, j, i);

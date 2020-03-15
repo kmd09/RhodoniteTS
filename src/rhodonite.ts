@@ -58,6 +58,7 @@ import RenderBuffer from './foundation/textures/RenderBuffer';
 import { TextureParameter } from './foundation/definitions/TextureParameter';
 import RenderableHelper from './foundation/helpers/RenderableHelper';
 import Texture from './foundation/textures/Texture';
+import VideoTexture from './foundation/textures/VideoTexture';
 import EntityHelper from './foundation/helpers/EntityHelper';
 import MathClassUtil from './foundation/math/MathClassUtil';
 import Mesh from './foundation/geometry/Mesh';
@@ -160,6 +161,7 @@ let Rn = {
   TextureParameter,
   RenderableHelper,
   Texture,
+  VideoTexture,
   EntityHelper,
   MathClassUtil,
   Mesh,
@@ -211,7 +213,7 @@ if (typeof exports !== 'undefined') {
 export default Rn;
 
 export type RnType = typeof Rn;
-(0,eval)('this').Rn = Rn;
+(0, eval)('this').Rn = Rn;
 
 export type CompositionTypeEnum = compositionTypeEnum;
 export type ComponentTypeEnum = componentTypeEnum;
