@@ -500,9 +500,14 @@ export default class Primitive extends RnObject {
     const pos1Vec3 = positionAccessor.getVec3(pos1IndexBase, {});
     const pos2Vec3 = positionAccessor.getVec3(pos2IndexBase, {});
 
-    const pos0 = Vector3.multiply(pos0Vec3, u);
-    const pos1 = Vector3.multiply(pos1Vec3, v);
-    const pos2 = Vector3.multiply(pos2Vec3, fDat);
+    const pos0 = this.__tmpVec3_0;
+    const pos1 = this.__tmpVec3_1;
+    const pos2 = this.__tmpVec3_2;
+
+    MutableVector3.multiplyTo(pos0Vec3, u, pos0);
+    MutableVector3.multiplyTo(pos1Vec3, v, pos1);
+    MutableVector3.multiplyTo(pos2Vec3, fDat, pos2);
+
     const intersectedPosVec3 = MutableVector3.zero().add(pos0).add(pos1).add(pos2);
 
     return [t, intersectedPosVec3];
@@ -516,9 +521,10 @@ export default class Primitive extends RnObject {
       // gl.TRIANGLE_STRIP
       incrementNum = 1;
     }
-    this.__inverseArenbergMatrix = [];
-    this.__arenberg3rdPosition = [];
     if (!this.hasIndices()) {
+      this.__inverseArenbergMatrix = Array(positionAccessor.elementCount - 2);
+      this.__arenberg3rdPosition = Array(positionAccessor.elementCount - 2);
+
       for (let i = 0; i < positionAccessor.elementCount - 2; i++) {
         const j = i * incrementNum;
         let pos0IndexBase = j;
@@ -528,6 +534,9 @@ export default class Primitive extends RnObject {
         this._calcArenbergMatrixFor3Vertices(i, pos0IndexBase, pos1IndexBase, pos2IndexBase);
       }
     } else {
+      this.__inverseArenbergMatrix = Array(this.__indices!.elementCount - 2);
+      this.__arenberg3rdPosition = Array(this.__indices!.elementCount - 2);
+
       for (let i = 0; i < this.__indices!.elementCount - 2; i++) {
         const j = i * incrementNum;
         if (j + 2 > this.__indices!.elementCount - 1) {
