@@ -579,11 +579,10 @@ export default class Primitive extends RnObject {
       MutableVector3.crossTo(pos2To1, pos2To0, normal);
       normal.normalize();
 
-      arenbergMatrix.setComponents(
-        pos2To1.x, pos2To0.x, normal.x - pos2Vec3.x,
-        pos2To1.y, pos2To0.y, normal.y - pos2Vec3.y,
-        pos2To1.z, pos2To0.z, normal.z - pos2Vec3.z
-      );
+      // convert to (normal - pos2Vec3) from (0, 0, -1) instead of (0, 0, 1)
+      arenbergMatrix.m02 = -(normal.x - pos2Vec3.x);
+      arenbergMatrix.m12 = -(normal.y - pos2Vec3.y);
+      arenbergMatrix.m22 = -(normal.z - pos2Vec3.z);
     }
 
     const inverseArenbergMatrix = arenbergMatrix.invert();
