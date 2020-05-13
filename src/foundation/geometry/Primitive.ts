@@ -556,17 +556,16 @@ export default class Primitive extends RnObject {
     const pos2Vec3 = positionAccessor.getVec3(pos2IndexBase, {});
 
     const pos2To0 = this.__tmpVec3_0;
-    pos2To0.x = pos0Vec3.x - pos2Vec3.x;
-    pos2To0.y = pos0Vec3.y - pos2Vec3.y;
-    pos2To0.z = pos0Vec3.z - pos2Vec3.z;
+    MutableVector3.subtractTo(pos0Vec3, pos2Vec3, pos2To0);
 
     const pos2To1 = this.__tmpVec3_1;
-    pos2To1.x = pos1Vec3.x - pos2Vec3.x;
-    pos2To1.y = pos1Vec3.y - pos2Vec3.y;
-    pos2To1.z = pos1Vec3.z - pos2Vec3.z;
+    MutableVector3.subtractTo(pos1Vec3, pos2Vec3, pos2To1);
 
     const normal = this.__tmpVec3_2;
     MutableVector3.crossTo(pos2To0, pos2To1, normal);
+    if (normal.length() <= 1e-6) {
+      return;
+    }
     normal.normalize();
 
     const arenbergMatrix = new MutableMatrix33(
